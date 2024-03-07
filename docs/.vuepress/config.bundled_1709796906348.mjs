@@ -101,8 +101,8 @@ var config_default = defineConfig4CustomTheme({
       }
     ],
     sidebarDepth: 2,
-    logo: "/img/logo.png",
-    repo: "Jinuss/vuepress-theme-vdoing",
+    logo: "/img/logo.jpg",
+    repo: "Jinuss/blog",
     searchMaxSuggestions: 10,
     lastUpdated: "\u4E0A\u6B21\u66F4\u65B0",
     docsDir: "docs",
@@ -139,7 +139,7 @@ var config_default = defineConfig4CustomTheme({
     },
     footer: {
       createYear: 2024,
-      copyrightInfo: '\u4E1C\u6D41 | <a href="https://github.com/Jinuss/vuepress-theme-vdoing/blob/master/LICENSE" target="_blank">MIT License</a>'
+      copyrightInfo: '\u4E1C\u6D41 | <a href="https://github.com/Jinuss/blog/blob/master/LICENSE" target="_blank">MIT License</a>'
     },
     extendFrontmatter: {
       author: {

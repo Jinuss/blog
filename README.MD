@@ -1,4 +1,4 @@
 ## 许可证
-[MIT](https://github.com/Jinuss/vuepress-theme-vdoing/blob/master/LICENSE)
+[MIT](https://github.com/Jinuss/blog/blob/master/LICENSE)
 
 Copyright (c) 2024-present 
