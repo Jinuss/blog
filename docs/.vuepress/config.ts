@@ -37,9 +37,7 @@ export default defineConfig4CustomTheme<VdoingThemeConfig>({
           {
             text: '学习笔记',
             items: [
-              { text: '《JavaScript教程》', link: '/note/javascript/' },
               { text: '《JavaScript高级程序设计》', link: '/note/js/' },
-              { text: '《ES6 教程》', link: '/note/es6/' },
               { text: '《Vue》', link: '/note/vue/' },
               { text: '《React》', link: '/note/react/' },
               {
