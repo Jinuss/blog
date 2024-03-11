@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>超级课程表|test drag</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+      }
+      table {
+        border-spacing: 0;
+      }
+      table,
+      td,
+      th {
+        border: 1px solid #333;
+      }
+      th {
+        height: 30px;
+        background-color: #333;
+        color: #fff;
+        border-spacing: 0;
+      }
+      td {
+        width: 120px;
+        height: 45px;
+        text-align: center;
+      }
+      .container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        width: 100%;
+      }
+      .leftPanel {
+        background: rgb(65, 67, 68, 0.5);
+        height: 380px;
+        margin-right: 200px;
+        display: flex;
+        flex-direction: column;
+        width: 120px;
+        justify-content: center;
+        align-items: center;
+        justify-content: space-around;
+      }
+      .item {
+        width: 100px;
+        height: 35px;
+        text-align: center;
+        cursor: move;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 4px;
+        margin: auto;
+      }
+      .item.yw {
+        background-color: orange;
+      }
+      .item.sx {
+        background-color: rgb(255, 217, 0);
+      }
+      .item.yy {
+        background-color: rgb(255, 81, 0);
+      }
+      .item.wl {
+        background-color: rgb(255, 30, 0);
+      }
+      .item.sw {
+        background-color: rgb(179, 255, 0);
+      }
+      .item.dl {
+        background-color: rgb(0, 255, 157);
+      }
+      .item.hx {
+        background-color: rgb(0, 174, 255);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="leftPanel">
+        <div class="item yw" draggable="true">语文</div>
+        <div class="item sx" draggable="true">数学</div>
+        <div class="item yy" draggable="true">英语</div>
+        <div class="item wl" draggable="true">物理</div>
+        <div class="item sw" draggable="true">生物</div>
+        <div class="item dl" draggable="true">地理</div>
+        <div class="item hx" draggable="true">化学</div>
+      </div>
+
+      <table>
+        <thead>
+          <th style="border: 0"></th>
+          <th>星期一</th>
+          <th>星期二</th>
+          <th>星期三</th>
+          <th>星期四</th>
+          <th>星期五</th>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="4">上午</td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+          </tr>
+          <tr>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+          </tr>
+          <tr>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+          </tr>
+          <tr>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+          </tr>
+          <tr>
+            <td rowspan="3">下午</td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+          </tr>
+          <tr>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+          </tr>
+          <tr>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+            <td class="draggable"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <script>
+      let dragClass = document.querySelector(".leftPanel");
+      dragClass.addEventListener("dragstart", (e) => {
+        console.log("开始拖动");
+        const node = e.target.cloneNode(true);
+        e.dataTransfer.setData("cloneNode", node.outerHTML);
+        console.log("🚀 ~ dragClass.addEventListener ~ node:", node);
+      });
+      dragClass.addEventListener("dragend", (e) => {
+        console.log("结束拖动");
+        e.dataTransfer.clearData();
+      });
+
+      let dropDom = document.querySelector("table");
+
+      dropDom.addEventListener("dragover", (e) => {
+        if (e.target.className == "draggable") {
+          e.preventDefault();
+        }
+      });
+
+      dropDom.addEventListener("drop", (e) => {
+        e.preventDefault();
+        console.log("我放下了");
+        const node = e.dataTransfer.getData("cloneNode");
+        console.log("🚀 ~ dropDom.addEventListener ~ node:", node);
+        e.target.innerHTML = node;
+        e.dataTransfer.clearData();
+      });
+
+      let dragTableCell = document.querySelector("table");
+      dragTableCell.addEventListener("dragstart", (e) => {
+        const node = e.target.cloneNode(true);
+        e.dataTransfer.setData("cloneNode", node.outerHTML);
+        console.log("🚀 ~ dragClass.addEventListener ~ node:", node);
+      });
+      dragTableCell.addEventListener("dragend", (e) => {
+        e.preventDefault();
+        const node = e.target;
+        node.parentNode.removeChild(node);
+      });
+    </script>
+  </body>
+</html>
