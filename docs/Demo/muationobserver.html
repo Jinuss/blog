@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<title>MutationObserver</title>
+
+<head>
+    <title>MutationObserver</title>
+</head>
+<style>
+    html,
+    body {
+        margin: 0 auto;
+        padding: 0;
+    }
+
+    #div1 {
+        width: 200px;
+        height: fit-content;
+        margin: 0 auto;
+        background-color: orange;
+    }
+</style>
+
+<body>
+    <div id="div1" ondrag="drag(event)" draggable="true">Hello</div>
+    <button onclick="add()">add</button>
+    <script>
+        var callback = function (mutations, observer) { console.log("🚀 ~ mutations, observer:", mutations, observer) };
+
+
+        var config = { attributes: true, childList: true, characterData: true };
+
+        // 创建一个观察者实例并传入回调函数
+        var observer = new MutationObserver(callback);
+        function drag(ev) {
+            // console.log("🚀 ~ drag ~ ev:", ev)
+            ev.dataTransfer.setData("text", ev.target.id);
+        }
+
+        observer.observe(document.getElementById("div1"), config);
+
+        function add() {
+            // 创建一个 <span> 元素
+            var spanElement = document.createElement("p");
+
+            // 可选：添加文本内容
+            spanElement.textContent = "这是一个 p 元素";
+
+            // 找到要添加 <span> 元素的父元素，假设父元素的 id 为 "container"
+            var parentElement = document.getElementById("div1");
+
+            // 将 <span> 元素添加到父元素中
+            parentElement.appendChild(spanElement);
+        }
+
+    </script>
+</body>
+
+</html>
