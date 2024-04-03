@@ -52,6 +52,10 @@
             parentElement.appendChild(spanElement);
         }
 
+        var resizeObserver = new ResizeObserver(function (entries) {
+            console.log(entries);
+        });
+        resizeObserver.observe(document.getElementById("div1"));
     </script>
 </body>
 
