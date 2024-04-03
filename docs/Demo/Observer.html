@@ -10,6 +10,41 @@
     body {
         margin: 0 auto;
         padding: 0;
+        height: 100%;
+    }
+
+    .Panel {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .container {
+        margin: 50px;
+        height: calc(100% - 100px);
+        width: calc(100% - 100px);
+        border: 1px solid red;
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .container>div {
+        width: calc(50% - 22px);
+        height: calc(50% - 22px);
+        padding: 10px;
+    }
+
+    .container>div:nth-child(1) {
+        border-right: 1px solid red;
+        border-bottom: 1px solid red;
+    }
+
+    .container>div:nth-child(4) {
+        border-left: 1px solid red;
+        border-top: 1px solid red;
+        margin-top: -2px;
     }
 
     #div1 {
@@ -21,8 +56,24 @@
 </style>
 
 <body>
-    <div id="div1" ondrag="drag(event)" draggable="true">Hello</div>
-    <button onclick="add()">add</button>
+    <div class="Panel">
+        <div class="container">
+            <div>
+                <p>变动观察器 MutationObserver</p>
+                <div id="div1" ondrag="drag(event)" draggable="true">Hello</div>
+                <button onclick="add()">add</button>
+            </div>
+            <div>
+                <p>调整观察器 ResizeObserver</p>
+            </div>
+            <div>
+                <p>交叉观察器 IntersectionObserver</p>
+            </div>
+            <div>
+                <p>性能观察器 PerformanceObserver</p>
+            </div>
+        </div>
+    </div>
     <script>
         var callback = function (mutations, observer) { console.log("🚀 ~ mutations, observer:", mutations, observer) };
 
