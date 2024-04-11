@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>SVG</title>
+    <title>SVG集合</title>
     <style>
         body,
         html {
@@ -31,33 +31,42 @@
 <body>
     <svg version="1.1" baseProfile="full" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
 
-        <rect width="100%" height="100%" stroke="red" stroke-width="4" fill="yellow" />
+        <!-- 矩形   -->
+        <rect width="100%" height="100%" stroke="red" stroke-width="2" fill="#fafafa" />
 
-        <rect x="350" y="350" width="150" height="50" ry="20" fill="orange" />
+        <!-- 矩形圆角 -->
+        <rect x="1450" y="50" width="150" height="50" ry="20" fill="orange" />
 
-        <rect x="250" y="250" width="50" height="50" ry="50" fill="orange" />
+        <!-- 圆 -->
+        <rect x="1650" y="50" width="50" height="50" ry="50" fill="#438de8" />
+        <circle cx="1760" cy="80" r="50" fill="green" />
 
+        <!-- 椭圆 -->
         <ellipse cx="300" cy="80" rx="100" ry="50" style="fill:yellow;stroke:purple;stroke-width:2" />
 
-        <circle cx="80" cy="80" r="80" fill="green" />
+        <!-- 文本 -->
+        <text class="run" x="300" y="95" font-size="20" text-anchor="middle" fill="red"> SVG TEST</text>
 
-        <text class="run" x="250" y="115" font-size="16" text-anchor="middle" fill="black">RUNOOB SVG TEST</text>
+        <!-- 线条 -->
+        <line class="run" x1="1300" y1="60" x2="1400" y2="200" style="stroke:rgb(255,0,0);stroke-width:2" />
 
-        <line class="run" x1="50" y1="60" x2="200" y2="200" style="stroke:rgb(255,0,0);stroke-width:2" />
+         <!-- 多边形 -->
+        <polygon points="1200,10 1250,190 1160,210" style="fill:rgb(228, 178, 61);stroke:rgb(11, 224, 21);stroke-width:2" />
 
-
-        <polygon points="200,10 250,190 160,210" style="fill:lime;stroke:purple;stroke-width:1" />
-
-        <polygon points="220,10 300,210 170,250 123,234" style="fill:lime;stroke:purple;stroke-width:1" />
-
-
-        <polygon points="100,10 40,198 190,78 10,78 160,198"
+         <!-- 五角星 -->
+        <polygon points="900,10 840,198 990,78 810,78 960,198"
             style="fill:lime;stroke:purple;stroke-width:5;fill-rule:nonzero;" />
 
-        <polygon points="100,10 40,198 190,78 10,78 160,198"
+        <!-- 镂空五角星  -->
+        <polygon points="600,10 540,198 690,78 510,78 660,198"
             style="fill:lime;stroke:purple;stroke-width:5;fill-rule:evenodd;" />
-        <polyline class="run" points="0,40 40,40 40,80 80,80 80,120 120,120 120,160" style="fill:white;stroke:red;stroke-width:4" />
-        <polyline class="run" points="20,20 40,25 60,40 80,120 120,140 200,180" style="fill:none;stroke:black;stroke-width:3" />
+        
+        <!-- 线段 -->
+        <polyline class="run" points="0,340 40,340 40,380 80,380 80,420 120,420 120,460"
+            style="fill:white;stroke:red;stroke-width:4" />
+
+        <polyline class="run" points="20,20 40,25 60,40 80,120 120,140 200,180"
+            style="fill:none;stroke:black;stroke-width:3" />
 
     </svg>
 </body>
