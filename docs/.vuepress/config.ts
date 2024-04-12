@@ -154,7 +154,7 @@ export default defineConfig4CustomTheme<VdoingThemeConfig>({
     blogger: {
       avatar: 'https://avatars.githubusercontent.com/u/22269482?v=4',
       name: '东流',
-      slogan: '前端可视化的小学生',
+      slogan: '前端可视化',
     },
 
     // 社交图标 (显示于博主信息栏和页脚栏。内置图标：https://doc.xugaoyi.com/pages/a20ce8/#social)
