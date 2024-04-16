@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+    <title>牛顿摆</title>
+<style>
+    html,
+    body,
+    .container {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #fff;
+    }
+
+    .app {
+        height: 140px;
+        width: 200px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+    }
+
+    .ball {
+        display: flex;
+        width: 50px;
+        height: 100%;
+        justify-content: center;
+        align-items: flex-end;
+        transform-origin: center top;
+    }
+
+    .ball::after {
+        content: '';
+        height: 50px;
+        width: 50px;
+        border-radius: 50%;
+        background-image: linear-gradient(160deg, #0093e9 0%, #80d0c7 100%);
+        background-color: rgb(231, 247, 247);
+        box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .ball::before {
+        content: '';
+        width: 2px;
+        height: 90px;
+        background-image: linear-gradient(160deg, #0093e9 0%, #80d0c7 100%);
+        position: absolute;
+        top: 0;
+    }
+
+    .ball:first-child {
+        animation: moveleft 1.4s infinite;
+    }
+
+    .ball:last-child {
+        animation: moveright 1.4s infinite;
+    }
+
+    @keyframes moveleft {
+        0% {
+            transform: rotate(0deg);
+            animation-timing-function: ease-out;
+        }
+
+        25% {
+            transform: rotate(70deg);
+            animation-timing-function: ease-in;
+        }
+
+        50% {
+            transform: rotate(0deg);
+        }
+    }
+
+    @keyframes moveright {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        50% {
+            transform: rotate(0deg);
+            animation-timing-function: ease-out;
+        }
+
+        75% {
+            transform: rotate(-70deg);
+            animation-timing-function: ease-in;
+        }
+    }
+</style>
+
+<body>
+    <div class="container">
+        <div class="app">
+            <div class="ball"></div>
+            <div class="ball"></div>
+            <div class="ball"></div>
+            <div class="ball"></div>
+        </div>
+    </div>
+</body>
+
+</html>
