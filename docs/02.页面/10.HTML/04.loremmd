@@ -1,0 +1,27 @@
+---
+title: Vanta.js3D背景库
+date: 2024-04-12 14:20:10
+permalink: /pages/dv5fds45gfgvgndc95e3
+categories:
+  - 页面
+  - HTML
+tags:
+  - null
+author:
+  name: jinuss
+  link: https://github.com/Jinuss
+---
+
+# Vanta.js3D 背景库
+
+### 概述
+
+Vanta.js 是一款轻量级、易于使用的 JavaScript 库，专为在网页中创建引入入神的 3D 动画背景而设计。
+
+### 示例
+
+示例如下
+
+> 可用<kbd>F12</kbd>开发者工具查看元素及样式，可打开 [codepen](https://codepen.io/jinuss/pen/abxKKZM) 在线编辑代码。
+
+详细可参考 官网 地址：[https://www.vantajs.com/](https://www.vantajs.com/)
