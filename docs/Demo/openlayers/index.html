@@ -16,6 +16,7 @@
         body {
             height: 100%;
             width: 100%;
+            overflow: hidden;
         }
 
         .map {
@@ -27,12 +28,100 @@
         #map:focus {
             outline: #4A74A8 solid 0.15em;
         }
+
+        .leftPanel {
+            position: absolute;
+            left: 20px;
+            width: 28px;
+            top: 70px;
+        }
+
+        button {
+            height: 24px;
+            width: 24px;
+            color: rgba(0, 0, 0, 0.85);
+            box-shadow: 0 2px 0 rgba(59, 51, 51, 0.015);
+            background: #fff;
+            border: 0;
+            cursor: pointer;
+        }
+
+        img {
+            height: 24px;
+            width: 24px;
+        }
+
+        .ol-popup {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.3);
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            /* bottom: 12px; */
+            /* margin-left: -65px; */
+            transform: translateX(-50%);
+            width: max-content;
+            height: 20px;
+        }
+
+        .icon {
+            fill: #707070
+        }
+
+        button.active>.icon {
+            fill: red
+        }
     </style>
 </head>
 
 <body>
     <div id="map" class="map" tabindex="0"></div>
-    <script type="module" src="main.js"></script>
+    <div class="leftPanel">
+        <button title="编辑绘制" onclick="editDraw()">
+            <img src="./assets/imgs/编辑.svg" alt="">
+        </button>
+        <button title="绘制矩形" id="buttonBox" onclick="drawMap('Box')">
+            <!-- <img src="./assets/imgs/矩形.svg" alt=""> -->
+            <svg t="1713598840142" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
+                p-id="2290" width="24" height="24">
+                <path
+                    d="M273.9 168.3H739v37.1H273.9zM273.9 819.6H739v37.1H273.9zM165.812 740.898v-465.1h37.1v465.1zM821.11 740.896v-465.1h37.1v465.1z"
+                    p-id="2291"></path>
+                <path
+                    d="M184.7 66.2c-66.8 0-121 54.2-121 121s54.2 121 121 121 121-54.2 121-121-54.1-121-121-121z m-0.1 203.5c-45.7 0-82.7-37-82.7-82.7s37-82.7 82.7-82.7 82.7 37 82.7 82.7c0.1 45.7-37 82.7-82.7 82.7zM184.7 717.5c-66.8 0-121 54.2-121 121s54.2 121 121 121 121-54.2 121-121-54.1-121-121-121z m-0.1 203.6c-45.7 0-82.7-37-82.7-82.7s37-82.7 82.7-82.7 82.7 37 82.7 82.7c0.1 45.6-37 82.7-82.7 82.7zM840 717.5c-66.8 0-121 54.2-121 121s54.2 121 121 121 121-54.2 121-121-54.1-121-121-121z m-0.1 203.6c-45.7 0-82.7-37-82.7-82.7s37-82.7 82.7-82.7 82.7 37 82.7 82.7c0.1 45.6-37 82.7-82.7 82.7zM840 66.2c-66.8 0-121 54.2-121 121s54.2 121 121 121 121-54.2 121-121-54.1-121-121-121z m-0.1 203.5c-45.7 0-82.7-37-82.7-82.7s37-82.7 82.7-82.7 82.7 37 82.7 82.7c0.1 45.7-37 82.7-82.7 82.7z"
+                    p-id="2292"></path>
+            </svg>
+        </button>
+        <button title="退出绘制" onclick="exitDraw()">
+            <svg t="1713603934717" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
+                p-id="7185" width="24" height="24">
+                <path
+                    d="M512 821.333333h-3.626667A309.333333 309.333333 0 0 1 202.666667 508.373333a310.186667 310.186667 0 0 1 159.04-266.666666 10.666667 10.666667 0 1 1 10.666666 18.56A288 288 0 1 0 650.666667 259.093333a10.666667 10.666667 0 0 1 10.133333-18.773333A309.333333 309.333333 0 0 1 512 821.333333z"
+                    fill="#707070" p-id="7186"></path>
+                <path
+                    d="M498.453333 416.64l-32-128.64a54.72 54.72 0 0 1 16-53.333333 44.373333 44.373333 0 0 1 59.093334 0 54.72 54.72 0 0 1 16 53.333333l-32 129.173333a14.186667 14.186667 0 0 1-27.093334-0.533333z"
+                    fill="#707070" p-id="7187"></path>
+            </svg>
+        </button>
+        <button onclick="addTranslateAndRotateInteraction()">
+            <svg t="1713604197070" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
+                p-id="8521" width="24" height="24">
+                <path d="M230.656 473.6h562.688v76.8H230.656z" fill="#707070" p-id="8522"></path>
+                <path d="M179.456 473.6h665.088v76.8H179.456z" fill="#707070" p-id="8523"></path>
+                <path
+                    d="M0 512l205.056 115.2v-230.4L0 512zM1024 512l-205.056 115.2v-230.4L1024 512zM473.6 179.456h76.8v665.088h-76.8z"
+                    fill="#707070" p-id="8524"></path>
+                <path d="M512 0l-115.2 205.056h230.4L512 0zM512 1024l-115.2-205.056h230.4L512 1024z" fill="#707070"
+                    p-id="8525"></path>
+            </svg>
+        </button>
+    </div>
+    <div id="popup" class="ol-popup">
+        <div id="popup-content">单击放置首个顶点</div>
+    </div>
+    <div class="rightPanel"></div>
+    <script src="./main.js"></script>
+    <script src="./draw.js"></script>
 </body>
 
 </html>
