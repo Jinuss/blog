@@ -86,9 +86,9 @@ function exitDraw() {
 }
 
 /**
- * 添加平移和旋转功能的函数
+ * 添加平移功能的函数
  */
-function addTranslateAndRotateInteraction() {
+function addTranslate() {
     // 创建一个选择交互操作，用于选择已绘制的图形
     var select = new ol.interaction.Select();
 
@@ -115,6 +115,47 @@ function addTranslateAndRotateInteraction() {
             map.removeInteraction(translate);
             // map.removeInteraction(rotate);
         }
+    });
+
+    // 添加选择交互操作到地图中
+    map.addInteraction(select);
+}
+
+/**
+ * 添加旋转功能的函数
+ */
+function addRotateInteraction() {
+    // 创建一个选择交互操作，用于选择已绘制的图形
+    var select = new ol.interaction.Select({
+        condition: ol.events.condition.click
+    });
+
+    // 创建一个修改交互操作，用于编辑已选中要素的几何图形
+    var modify = new ol.interaction.Modify({
+        features: select.getFeatures(),
+        // 设置为仅允许移动顶点
+        deleteCondition: function (event) {
+            return ol.events.condition.alwaysFalse(event);
+        }
+    });
+
+    // 监听选择图形的事件
+    select.on('select', function (event) {
+        var selectedFeatures = event.selected;
+        if (selectedFeatures.length > 0) {
+            // 启用修改交互操作
+            map.addInteraction(modify);
+        } else {
+            // 如果没有选中图形，移除修改交互操作
+            map.removeInteraction(modify);
+        }
+    });
+
+    // 监听修改结束的事件，以便在用户完成修改时执行旋转和缩放操作
+    modify.on('modifyend', function (event) {
+        // 获取修改的要素
+        var modifiedFeature = event.features.item(0);
+        // 执行旋转和缩放操作...
     });
 
     // 添加选择交互操作到地图中
