@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+        }
+
+        html,
+        body,
+        .container {
+            height: 100%;
+            width: 100%;
+        }
+
+        .container {
+            background-color: #666;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            align-content: center;
+            flex-direction: column;
+        }
+
+        .child {
+            margin-top: 10px;
+            height: 400px;
+            width: 600px;
+            display: flex;
+            border: 1px solid salmon;
+
+            >div {
+                flex: 1;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"
+        integrity="sha512-JyCZjCOZoyeQZSd5+YEAcFgz2fowJ1F1hyJOXgtKu4llIa0KneLcidn5bwfutiehUTiOuK87A986BZJMko0eWQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css"
+        integrity="sha512-UtLOu9C7NuThQhuXXrGwx9Jb/z9zPQJctuAgNUBK3Z6kkSYT9wJ+2+dh6klS+TDBCV9kNPBbAxbVD+vCcfGPaA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+
+<body>
+    <div class="container">
+        <input type="file" name="上传文件" id="" accept="image/*" />
+        <div class="child">
+            <div class="origin">
+                <span>原图</span>
+                <img class="originContainer" id="originImg"  src="./test.jpeg"/>
+            </div>
+            <div class="cut">
+                <span>裁剪图</span>
+                <div class="cutContainer"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const doms = {
+            originImg: document.querySelector("#originImg")
+        }
+
+        const cropper = new Cropper(doms.originImg, {
+            aspectRatio: 16 / 9,
+            crop(event) {
+                console.log('event', event)
+            }
+        })
+    </script>
+</body>
+
+</html>
