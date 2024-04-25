@@ -72,7 +72,7 @@
 
 <body>
     <div class="container">
-        <input type="file" name="上传文件" id="" accept="image/*" />
+        <input type="file" name="上传文件" id="fileBtn" accept="image/*" />
         <div class="child">
             <div class="origin">
                 <span>原图</span>
@@ -89,10 +89,24 @@
     </div>
     <script>
         const doms = {
+            fileBtn: document.querySelector("#fileBtn"),
             originImg: document.querySelector("#originImg"),
             cutImg: document.querySelector('#cut'),
             cutCircleImg: document.querySelector('#cutCircle'),
         }
+
+        doms.fileBtn.addEventListener('change', function (e) {
+            const fileList = e.target.files;
+            if (fileList.length > 0) {
+                const file = fileList[0]
+                const reader = new FileReader()
+                reader.onload = function (event) {
+                    doms.originImg.src = e.target.result
+                }
+
+                reader.readAsDataURL(file)
+            }
+        })
 
         const cropper = new Cropper(doms.originImg, {
             aspectRatio: 16 / 9,
