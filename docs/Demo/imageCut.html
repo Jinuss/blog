@@ -19,7 +19,7 @@
         }
 
         .container {
-            background-color: #666;
+            background-color: #eee;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -30,13 +30,36 @@
         .child {
             margin-top: 10px;
             height: 400px;
-            width: 600px;
+            width: 1000px;
             display: flex;
-            border: 1px solid salmon;
+            justify-content: space-around;
+            /* border: 1px solid salmon; */
 
             >div {
-                flex: 1;
+                display: flex;
+                flex-direction: column;
+
+                >span {
+                    margin-bottom: 10px;
+                }
             }
+        }
+
+        .originContainer {
+            width: 400px;
+            height: 400px;
+            border: 1px solid #666;
+        }
+
+        #cut {
+            width: 200px;
+            height: 200px;
+        }
+
+        #cutCircle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"
@@ -53,23 +76,37 @@
         <div class="child">
             <div class="origin">
                 <span>原图</span>
-                <img class="originContainer" id="originImg"  src="./test.jpeg"/>
+                <img class="originContainer" id="originImg" src="./test.jpeg" />
             </div>
             <div class="cut">
                 <span>裁剪图</span>
-                <div class="cutContainer"></div>
+                <div class="cutContainer">
+                    <img src="" alt="" id="cut">
+                    <img src="" alt="" id="cutCircle">
+                </div>
             </div>
         </div>
     </div>
     <script>
         const doms = {
-            originImg: document.querySelector("#originImg")
+            originImg: document.querySelector("#originImg"),
+            cutImg: document.querySelector('#cut'),
+            cutCircleImg: document.querySelector('#cutCircle'),
         }
 
         const cropper = new Cropper(doms.originImg, {
             aspectRatio: 16 / 9,
             crop(event) {
                 console.log('event', event)
+                var canvas = cropper.getCroppedCanvas();
+
+                // 如果需要，可以将canvas转换为图片
+                var imageUrl = canvas.toDataURL('image/jpeg');
+
+                // 在这里处理获取到的图片，比如显示在页面上或者上传
+                // 例如显示裁剪后的图片:
+                doms.cutImg.src = imageUrl;
+                doms.cutCircleImg.src = imageUrl;
             }
         })
     </script>
