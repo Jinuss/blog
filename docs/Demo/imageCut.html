@@ -95,34 +95,48 @@
             cutCircleImg: document.querySelector('#cutCircle'),
         }
 
+        var cropper = null
+
         doms.fileBtn.addEventListener('change', function (e) {
             const fileList = e.target.files;
             if (fileList.length > 0) {
                 const file = fileList[0]
                 const reader = new FileReader()
                 reader.onload = function (event) {
-                    doms.originImg.src = e.target.result
+                    // doms.originImg.src
+                    const src = event.target.result
+                    console.log("🚀 ~ src:", src)
+                    doms.originImg.src = src
+                    init()
                 }
 
                 reader.readAsDataURL(file)
             }
         })
 
-        const cropper = new Cropper(doms.originImg, {
-            aspectRatio: 16 / 9,
-            crop(event) {
-                console.log('event', event)
-                var canvas = cropper.getCroppedCanvas();
+        init()
 
-                // 如果需要，可以将canvas转换为图片
-                var imageUrl = canvas.toDataURL('image/jpeg');
-
-                // 在这里处理获取到的图片，比如显示在页面上或者上传
-                // 例如显示裁剪后的图片:
-                doms.cutImg.src = imageUrl;
-                doms.cutCircleImg.src = imageUrl;
+        function init() {
+            if (cropper) {
+                cropper.destroy()
             }
-        })
+
+            cropper = new Cropper(doms.originImg, {
+                aspectRatio: 16 / 9,
+                crop(event) {
+                    console.log('event', event)
+                    var canvas = cropper.getCroppedCanvas();
+
+                    // 如果需要，可以将canvas转换为图片
+                    var imageUrl = canvas.toDataURL('image/jpeg');
+
+                    // 在这里处理获取到的图片，比如显示在页面上或者上传
+                    // 例如显示裁剪后的图片:
+                    doms.cutImg.src = imageUrl;
+                    doms.cutCircleImg.src = imageUrl;
+                }
+            })
+        }
     </script>
 </body>
 
