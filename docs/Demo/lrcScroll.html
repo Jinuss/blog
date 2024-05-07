@@ -51,32 +51,46 @@
 <body>
     <div id="container">
         <div id="lrcContainer"></div>
+        <audio src="./webm/wfc.mp3" controls id="audio"></audio>
     </div>
 </body>
 <script>
     const doms = {
         container: document.querySelector("#container"),
-        lrcContainer: document.querySelector("#lrcContainer")
+        lrcContainer: document.querySelector("#lrcContainer"),
+        audio: document.querySelector("#audio")
     }
-    console.log(lrc)
-    const arr = lrc.split("\n").map(line => {
+    function timeStringToSeconds(timeString) {
+        var timeParts = timeString.split(':');
+        var minutes = parseInt(timeParts[0], 10);
+        var seconds = parseFloat(timeParts[1]);
+        return (minutes * 60 + seconds).toFixed(5);
+    }
+    const arr = lrc.split("\n").map((line, index) => {
         const regex = /^\[(.*?)\](.*)$/; // 匹配中括号内的部分和其后的文本
         const matches = line.match(regex); // 匹配结果
 
         if (matches) {
             const time = matches[1]; // 获取括号内的时间
             const lyric = matches[2].trim(); // 获取剩余的歌词，使用 trim 去除多余的空格
-            return { time, lyric }
+            return { time: timeStringToSeconds(time), lyric, index }
         }
     })
     const ulEl = document.createElement("ul")
     for (let i = 0; i < arr.length; i++) {
         const liEl = document.createElement("li")
         liEl.innerText = arr[i].lyric
+        liEl.setAttribute('data-index', i)
+        liEl.setAttribute('dat-time', arr[i].time)
         ulEl.appendChild(liEl)
     }
     doms.lrcContainer.appendChild(ulEl)
     console.log("🚀 ~ arr:", arr)
+
+    doms.audio.addEventListener('timeupdate', () => {
+        const currentTime = doms.audio.currentTime
+        console.log("🚀 ~ doms.audio.addEventListener ~ currentTime:", currentTime)
+    })
 </script>
 
 </html>
