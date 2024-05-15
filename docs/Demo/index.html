@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <script>
+        var channel = new MessageChannel();
+        console.log("🚀 ~ channel:", channel)
+        var port1 = channel.port1;
+        console.log("🚀 ~ port1:", port1)
+        var port2 = channel.port2;
+        console.log("🚀 ~ port2:", port2);
+
+        port1.onmessage = function (event) {
+            console.log("port1：" + event.data);
+        };
+
+        port2.onmessage = function (event) {
+            console.log("port2：" + event.data);
+        };
+
+        port1.postMessage("我是port1，发送给port2");
+        port2.postMessage("我是port2，发送给port1");
+        port1.close();
+
+        // port2.start()
+
+    </script>
+</body>
+
+</html>
