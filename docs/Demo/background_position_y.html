@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Background-position-y</title>
+    <style>
+        .container {
+            margin: 100px auto;
+            display: flex;
+            justify-content: center;
+        }
+
+        .box {
+            width: 128px;
+            height: 128px;
+        }
+
+        .box:nth-child(1) {
+            background-image: url(./image/dev-process-one.png);
+            background-position-y: 0;
+        }
+
+        .box:nth-child(2) {
+            background-image: url(./image/dev-process-two.png);
+            background-position-y: 0;
+        }
+
+        .box:nth-child(3) {
+            background-image: url(./image/dev-process-three.png);
+            background-position-y: 0;
+        }
+
+        .box:nth-child(4) {
+            background-image: url(./image/dev-process-four.png);
+            background-position-y: 0;
+        }
+
+        .box:nth-child(5) {
+            background-image: url(./image/dev-process-five.png);
+            background-position-y: 0;
+        }
+    </style>
+    <script>
+        class animate {
+            constructor(dom) {
+                this.element = dom;
+                this.timer_over = null;
+                this.timer_leave = null;
+                this.period = 30;
+                this.step = 128;
+                this.imgLength = -3228;
+                this.init();
+            }
+            init() {
+                this.element.addEventListener("mouseover", () => {
+                    this.over();
+                })
+
+                this.element.addEventListener("mouseleave", () => {
+                    this.leave();
+                })
+            }
+            over() {
+                if (this.timer_leave) {
+                    clearTimeout(this.timer_leave)
+                }
+
+                this.timer_over = setInterval(((step) => {
+                    const positionYValue = this.getPositionY()
+                    if (positionYValue > this.imgLength) {
+                        this.element.style.backgroundPositionY = `${positionYValue - this.step}px`
+                    }
+                }).bind(this), this.period)
+            }
+            leave() {
+                if (this.timer_over) {
+                    clearTimeout(this.timer_over)
+                }
+
+                this.timer_leave = setInterval((() => {
+                    const positionYValue = this.getPositionY()
+                    if (positionYValue != 0) {
+                        this.element.style.backgroundPositionY = `${positionYValue + this.step}px`
+                    }
+                }).bind(this), this.period)
+            }
+            getPositionY() {
+                const styles = window.getComputedStyle(this.element);
+                const backgroundPositionY = styles.getPropertyValue('background-position-y');
+                const positionYValue = parseFloat(backgroundPositionY);
+                return positionYValue;
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="box" id="box_1"></div>
+        <div class="box" id="box_2"></div>
+        <div class="box" id="box_3"></div>
+        <div class="box" id="box_4"></div>
+        <div class="box" id="box_5"></div>
+    </div>
+
+    <script>
+        const doms = {
+            box1: document.querySelector("#box_1"),
+            box2: document.querySelector("#box_2"),
+            box3: document.querySelector("#box_3"),
+            box4: document.querySelector("#box_4"),
+            box5: document.querySelector("#box_5")
+        }
+        for (let dom in doms) {
+            new animate(doms[dom])
+        }
+    </script>
+</body>
+
+</html>
