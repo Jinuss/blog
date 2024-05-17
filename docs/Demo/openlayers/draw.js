@@ -1,7 +1,8 @@
-const doms = { // 弹框元素
+const doms = {
     boxBtn: document.getElementById('buttonBox'),
     popupContainer: document.getElementById('popup'),
-    popupContent: document.getElementById('popup-content')
+    popupContent: document.getElementById('popup-content'),
+    bottomPanel: document.querySelector('.bottomPanel'),
 }
 
 const drawMap = (type) => {
@@ -161,3 +162,31 @@ function addRotateInteraction() {
     // 添加选择交互操作到地图中
     map.addInteraction(select);
 }
+
+/**
+ * 切换底图
+ */
+console.log(doms)
+doms.bottomPanel.addEventListener('click', (e) => {
+    e.cancelable && e.preventDefault()
+    const type = doms.bottomPanel.getAttribute('data-type')
+    const aDiv = doms.bottomPanel.children;
+    let aType;
+    for (let i = 0; i < aDiv.length; i++) {
+        aType = aDiv[i].getAttribute('data-type')
+        if (aType != type) {
+            aDiv[i].classList.add('active')
+            doms.bottomPanel.setAttribute('data-type', aType)
+        } else {
+            aDiv[i].classList.remove('active');
+        }
+    }
+
+    if (doms.bottomPanel.getAttribute('data-type') != '1') {
+        AMAP_LAYER.setVisible(false)
+        GOOGLE_LAYER.setVisible(true)
+    } else {
+        AMAP_LAYER.setVisible(true)
+        GOOGLE_LAYER.setVisible(false)
+    }
+})
