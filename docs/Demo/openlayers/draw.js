@@ -166,7 +166,6 @@ function addRotateInteraction() {
 /**
  * 切换底图
  */
-console.log(doms)
 doms.bottomPanel.addEventListener('click', (e) => {
     e.cancelable && e.preventDefault()
     const type = doms.bottomPanel.getAttribute('data-type')

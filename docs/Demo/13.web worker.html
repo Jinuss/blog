@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <button id="btn">main</button>
+    <input type="text" name="" id="">
+    <script>
+        const doms = {
+            btn: document.getElementById('btn'),
+            input: document.getElementById('input')
+        }
+
+        const worker = new Worker('./js/worker.js')
+        console.log("🚀 ~ worker:", worker)
+        worker.postMessage('hello')
+        worker.onmessage = ({ data }) => {
+            console.log("🚀", data)
+            for (let i = 0; i < 100; i++) {
+                console.log('main:', i)
+            }
+            // worker.terminate()
+        }
+    </script>
+</body>
+
+</html>
