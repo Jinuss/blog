@@ -339,7 +339,87 @@ function createCurrentLocation(base, location) {
     const path = stripBase(pathname, base);
     return path + search + hash;
 }
-
+function useHistoryListeners(base, historyState, currentLocation, replace) {
+    let listeners = [];
+    let teardowns = [];
+    // TODO: should it be a stack? a Dict. Check if the popstate listener
+    // can trigger twice
+    let pauseState = null;
+    const popStateHandler = ({ state, }) => {
+        const to = createCurrentLocation(base, location);
+        const from = currentLocation.value;
+        const fromState = historyState.value;
+        let delta = 0;
+        if (state) {
+            currentLocation.value = to;
+            historyState.value = state;
+            // ignore the popstate and reset the pauseState
+            if (pauseState && pauseState === from) {
+                pauseState = null;
+                return;
+            }
+            delta = fromState ? state.position - fromState.position : 0;
+        }
+        else {
+            replace(to);
+        }
+        // Here we could also revert the navigation by calling history.go(-delta)
+        // this listener will have to be adapted to not trigger again and to wait for the url
+        // to be updated before triggering the listeners. Some kind of validation function would also
+        // need to be passed to the listeners so the navigation can be accepted
+        // call all listeners
+        listeners.forEach(listener => {
+            listener(currentLocation.value, from, {
+                delta,
+                type: NavigationType.pop,
+                direction: delta
+                    ? delta > 0
+                        ? NavigationDirection.forward
+                        : NavigationDirection.back
+                    : NavigationDirection.unknown,
+            });
+        });
+    };
+    function pauseListeners() {
+        pauseState = currentLocation.value;
+    }
+    function listen(callback) {
+        // set up the listener and prepare teardown callbacks
+        listeners.push(callback);
+        const teardown = () => {
+            const index = listeners.indexOf(callback);
+            if (index > -1)
+                listeners.splice(index, 1);
+        };
+        teardowns.push(teardown);
+        return teardown;
+    }
+    function beforeUnloadListener() {
+        const { history } = window;
+        if (!history.state)
+            return;
+        history.replaceState(assign({}, history.state, { scroll: computeScrollPosition() }), '');
+    }
+    function destroy() {
+        for (const teardown of teardowns)
+            teardown();
+        teardowns = [];
+        window.removeEventListener('popstate', popStateHandler);
+        window.removeEventListener('beforeunload', beforeUnloadListener);
+    }
+    // set up the listeners and prepare teardown callbacks
+    window.addEventListener('popstate', popStateHandler);
+    // TODO: could we use 'pagehide' or 'visibilitychange' instead?
+    // https://developer.chrome.com/blog/page-lifecycle-api/
+    window.addEventListener('beforeunload', beforeUnloadListener, {
+        passive: true,
+    });
+    return {
+        pauseListeners,
+        listen,
+        destroy,
+    };
+}
 /**
  * Creates a state object
  */
@@ -352,6 +432,234 @@ function buildState(back, current, forward, replaced = false, computeScroll = fa
         position: window.history.length,
         scroll: computeScroll ? computeScrollPosition() : null,
     };
+}
+function useHistoryStateNavigation(base) {
+    const { history, location } = window;
+    // private variables
+    const currentLocation = {
+        value: createCurrentLocation(base, location),
+    };
+    const historyState = { value: history.state };
+    // build current history entry as this is a fresh navigation
+    if (!historyState.value) {
+        changeLocation(currentLocation.value, {
+            back: null,
+            current: currentLocation.value,
+            forward: null,
+            // the length is off by one, we need to decrease it
+            position: history.length - 1,
+            replaced: true,
+            // don't add a scroll as the user may have an anchor, and we want
+            // scrollBehavior to be triggered without a saved position
+            scroll: null,
+        }, true);
+    }
+    function changeLocation(to, state, replace) {
+        /**
+         * if a base tag is provided, and we are on a normal domain, we have to
+         * respect the provided `base` attribute because pushState() will use it and
+         * potentially erase anything before the `#` like at
+         * https://github.com/vuejs/router/issues/685 where a base of
+         * `/folder/#` but a base of `/` would erase the `/folder/` section. If
+         * there is no host, the `<base>` tag makes no sense and if there isn't a
+         * base tag we can just use everything after the `#`.
+         */
+        const hashIndex = base.indexOf('#');
+        const url = hashIndex > -1
+            ? (location.host && document.querySelector('base')
+                ? base
+                : base.slice(hashIndex)) + to
+            : createBaseLocation() + base + to;
+        try {
+            // BROWSER QUIRK
+            // NOTE: Safari throws a SecurityError when calling this function 100 times in 30 seconds
+            history[replace ? 'replaceState' : 'pushState'](state, '', url);
+            historyState.value = state;
+        }
+        catch (err) {
+            {
+                console.error(err);
+            }
+            // Force the navigation, this also resets the call count
+            location[replace ? 'replace' : 'assign'](url);
+        }
+    }
+    function replace(to, data) {
+        const state = assign({}, history.state, buildState(historyState.value.back,
+            // keep back and forward entries but override current position
+            to, historyState.value.forward, true), data, { position: historyState.value.position });
+        changeLocation(to, state, true);
+        currentLocation.value = to;
+    }
+    function push(to, data) {
+        // Add to current entry the information of where we are going
+        // as well as saving the current position
+        const currentState = assign({},
+            // use current history state to gracefully handle a wrong call to
+            // history.replaceState
+            // https://github.com/vuejs/router/issues/366
+            historyState.value, history.state, {
+            forward: to,
+            scroll: computeScrollPosition(),
+        });
+        changeLocation(currentState.current, currentState, true);
+        const state = assign({}, buildState(currentLocation.value, to, null), { position: currentState.position + 1 }, data);
+        changeLocation(to, state, false);
+        currentLocation.value = to;
+    }
+    return {
+        location: currentLocation,
+        state: historyState,
+        push,
+        replace,
+    };
+}
+/**
+ * Creates an HTML5 history. Most common history for single page applications.
+ *
+ * @param base -
+ */
+function createWebHistory(base) {
+    base = normalizeBase(base);
+    const historyNavigation = useHistoryStateNavigation(base);
+    const historyListeners = useHistoryListeners(base, historyNavigation.state, historyNavigation.location, historyNavigation.replace);
+    function go(delta, triggerListeners = true) {
+        if (!triggerListeners)
+            historyListeners.pauseListeners();
+        history.go(delta);
+    }
+    const routerHistory = assign({
+        // it's overridden right after
+        location: '',
+        base,
+        go,
+        createHref: createHref.bind(null, base),
+    }, historyNavigation, historyListeners);
+    Object.defineProperty(routerHistory, 'location', {
+        enumerable: true,
+        get: () => historyNavigation.location.value,
+    });
+    Object.defineProperty(routerHistory, 'state', {
+        enumerable: true,
+        get: () => historyNavigation.state.value,
+    });
+    return routerHistory;
+}
+
+/**
+ * Creates an in-memory based history. The main purpose of this history is to handle SSR. It starts in a special location that is nowhere.
+ * It's up to the user to replace that location with the starter location by either calling `router.push` or `router.replace`.
+ *
+ * @param base - Base applied to all urls, defaults to '/'
+ * @returns a history object that can be passed to the router constructor
+ */
+function createMemoryHistory(base = '') {
+    let listeners = [];
+    let queue = [START];
+    let position = 0;
+    base = normalizeBase(base);
+    function setLocation(location) {
+        position++;
+        if (position !== queue.length) {
+            // we are in the middle, we remove everything from here in the queue
+            queue.splice(position);
+        }
+        queue.push(location);
+    }
+    function triggerListeners(to, from, { direction, delta }) {
+        const info = {
+            direction,
+            delta,
+            type: NavigationType.pop,
+        };
+        for (const callback of listeners) {
+            callback(to, from, info);
+        }
+    }
+    const routerHistory = {
+        // rewritten by Object.defineProperty
+        location: START,
+        // TODO: should be kept in queue
+        state: {},
+        base,
+        createHref: createHref.bind(null, base),
+        replace(to) {
+            // remove current entry and decrement position
+            queue.splice(position--, 1);
+            setLocation(to);
+        },
+        push(to, data) {
+            setLocation(to);
+        },
+        listen(callback) {
+            listeners.push(callback);
+            return () => {
+                const index = listeners.indexOf(callback);
+                if (index > -1)
+                    listeners.splice(index, 1);
+            };
+        },
+        destroy() {
+            listeners = [];
+            queue = [START];
+            position = 0;
+        },
+        go(delta, shouldTrigger = true) {
+            const from = this.location;
+            const direction =
+                // we are considering delta === 0 going forward, but in abstract mode
+                // using 0 for the delta doesn't make sense like it does in html5 where
+                // it reloads the page
+                delta < 0 ? NavigationDirection.back : NavigationDirection.forward;
+            position = Math.max(0, Math.min(position + delta, queue.length - 1));
+            if (shouldTrigger) {
+                triggerListeners(this.location, from, {
+                    direction,
+                    delta,
+                });
+            }
+        },
+    };
+    Object.defineProperty(routerHistory, 'location', {
+        enumerable: true,
+        get: () => queue[position],
+    });
+    return routerHistory;
+}
+
+/**
+ * Creates a hash history. Useful for web applications with no host (e.g. `file://`) or when configuring a server to
+ * handle any URL is not possible.
+ *
+ * @param base - optional base to provide. Defaults to `location.pathname + location.search` If there is a `<base>` tag
+ * in the `head`, its value will be ignored in favor of this parameter **but note it affects all the history.pushState()
+ * calls**, meaning that if you use a `<base>` tag, it's `href` value **has to match this parameter** (ignoring anything
+ * after the `#`).
+ *
+ * @example
+ * ```js
+ * // at https://example.com/folder
+ * createWebHashHistory() // gives a url of `https://example.com/folder#`
+ * createWebHashHistory('/folder/') // gives a url of `https://example.com/folder/#`
+ * // if the `#` is provided in the base, it won't be added by `createWebHashHistory`
+ * createWebHashHistory('/folder/#/app/') // gives a url of `https://example.com/folder/#/app/`
+ * // you should avoid doing this because it changes the original url and breaks copying urls
+ * createWebHashHistory('/other-folder/') // gives a url of `https://example.com/other-folder/#`
+ *
+ * // at file:///usr/etc/folder/index.html
+ * // for locations with no `host`, the base is ignored
+ * createWebHashHistory('/iAmIgnored') // gives a url of `file:///usr/etc/folder/index.html#`
+ * ```
+ */
+function createWebHashHistory(base) {
+    // Make sure this implementation is fine in terms of encoding, specially for IE11
+    // for `file://`, directly use the pathname and ignore the base
+    // location.pathname contains an initial `/` even at the root: `https://example.com`
+    base = location.host ? base || location.pathname + location.search : '';
+    // allow the user to provide a `#` in the middle: `/base/#/app`
+    if (!base.includes('#'))
+        base += '#';
+    return createWebHistory(base);
 }
 
 function isRouteLocation(route) {
@@ -1026,14 +1334,14 @@ function createRouterMatcher(routes, globalOptions) {
                 });
             name = matcher.record.name;
             params = assign(
-            // paramsFromLocation is a new object
-            paramsFromLocation(currentLocation.params, 
-            // only keep params that exist in the resolved location
-            // TODO: only keep optional params coming from a parent record
-            matcher.keys.filter(k => !k.optional).map(k => k.name)), 
-            // discard any existing params in the current location that do not exist here
-            // #1497 this ensures better active/exact matching
-            location.params &&
+                // paramsFromLocation is a new object
+                paramsFromLocation(currentLocation.params,
+                    // only keep params that exist in the resolved location
+                    // TODO: only keep optional params coming from a parent record
+                    matcher.keys.filter(k => !k.optional).map(k => k.name)),
+                // discard any existing params in the current location that do not exist here
+                // #1497 this ensures better active/exact matching
+                location.params &&
                 paramsFromLocation(location.params, matcher.keys.map(k => k.name)));
             // throws if cannot be stringified
             path = matcher.stringify(params);
@@ -1483,9 +1791,9 @@ function registerGuard(record, name, guard) {
  * @param leaveGuard - {@link NavigationGuard}
  */
 function onBeforeRouteLeave(leaveGuard) {
-    const activeRecord = vue.inject(matchedRouteKey, 
-    // to avoid warning
-    {}).value;
+    const activeRecord = vue.inject(matchedRouteKey,
+        // to avoid warning
+        {}).value;
     if (!activeRecord) {
         return;
     }
@@ -1499,9 +1807,9 @@ function onBeforeRouteLeave(leaveGuard) {
  * @param updateGuard - {@link NavigationGuard}
  */
 function onBeforeRouteUpdate(updateGuard) {
-    const activeRecord = vue.inject(matchedRouteKey, 
-    // to avoid warning
-    {}).value;
+    const activeRecord = vue.inject(matchedRouteKey,
+        // to avoid warning
+        {}).value;
     if (!activeRecord) {
         return;
     }
@@ -1643,16 +1951,16 @@ function useLink(props) {
         // possible parent record
         const parentRecordPath = getOriginalPath(matched[length - 2]);
         return (
-        // we are dealing with nested routes
-        length > 1 &&
-            // if the parent and matched route have the same path, this link is
-            // referring to the empty child. Or we currently are on a different
-            // child of the same parent
-            getOriginalPath(routeMatched) === parentRecordPath &&
-            // avoid comparing the child with its parent
-            currentMatched[currentMatched.length - 1].path !== parentRecordPath
-            ? currentMatched.findIndex(isSameRouteRecord.bind(null, matched[length - 2]))
-            : index);
+            // we are dealing with nested routes
+            length > 1 &&
+                // if the parent and matched route have the same path, this link is
+                // referring to the empty child. Or we currently are on a different
+                // child of the same parent
+                getOriginalPath(routeMatched) === parentRecordPath &&
+                // avoid comparing the child with its parent
+                currentMatched[currentMatched.length - 1].path !== parentRecordPath
+                ? currentMatched.findIndex(isSameRouteRecord.bind(null, matched[length - 2]))
+                : index);
     });
     const isActive = vue.computed(() => activeRecordIndex.value > -1 &&
         includesParams(currentRoute.params, route.value.params));
@@ -1662,7 +1970,7 @@ function useLink(props) {
     function navigate(e = {}) {
         if (guardEvent(e)) {
             return router[vue.unref(props.replace) ? 'replace' : 'push'](vue.unref(props.to)
-            // avoid uncaught errors are they are logged anyway
+                // avoid uncaught errors are they are logged anyway
             ).catch(noop);
         }
         return Promise.resolve();
@@ -1678,7 +1986,60 @@ function useLink(props) {
         navigate,
     };
 }
-
+const RouterLinkImpl = /*#__PURE__*/ vue.defineComponent({
+    name: 'RouterLink',
+    compatConfig: { MODE: 3 },
+    props: {
+        to: {
+            type: [String, Object],
+            required: true,
+        },
+        replace: Boolean,
+        activeClass: String,
+        // inactiveClass: String,
+        exactActiveClass: String,
+        custom: Boolean,
+        ariaCurrentValue: {
+            type: String,
+            default: 'page',
+        },
+    },
+    useLink,
+    setup(props, { slots }) {
+        const link = vue.reactive(useLink(props));
+        const { options } = vue.inject(routerKey);
+        const elClass = vue.computed(() => ({
+            [getLinkClass(props.activeClass, options.linkActiveClass, 'router-link-active')]: link.isActive,
+            // [getLinkClass(
+            //   props.inactiveClass,
+            //   options.linkInactiveClass,
+            //   'router-link-inactive'
+            // )]: !link.isExactActive,
+            [getLinkClass(props.exactActiveClass, options.linkExactActiveClass, 'router-link-exact-active')]: link.isExactActive,
+        }));
+        return () => {
+            const children = slots.default && slots.default(link);
+            return props.custom
+                ? children
+                : vue.h('a', {
+                    'aria-current': link.isExactActive
+                        ? props.ariaCurrentValue
+                        : null,
+                    href: link.href,
+                    // this would override user added attrs but Vue will still add
+                    // the listener, so we end up triggering both
+                    onClick: link.navigate,
+                    class: elClass.value,
+                }, children);
+        };
+    },
+});
+// export the public type for h/tsx inference
+// also to avoid inline import() in generated d.ts files
+/**
+ * Component to render a link that triggers a navigation on click.
+ */
+const RouterLink = RouterLinkImpl;
 function guardEvent(e) {
     // don't redirect with control keys
     if (e.metaKey || e.altKey || e.ctrlKey || e.shiftKey)
@@ -1726,6 +2087,17 @@ function includesParams(outer, inner) {
 function getOriginalPath(record) {
     return record ? (record.aliasOf ? record.aliasOf.path : record.path) : '';
 }
+/**
+ * Utility class to get the active class based on defaults.
+ * @param propClass
+ * @param globalClass
+ * @param defaultClass
+ */
+const getLinkClass = (propClass, globalClass, defaultClass) => propClass != null
+    ? propClass
+    : globalClass != null
+        ? globalClass
+        : defaultClass;
 
 const RouterViewImpl = /*#__PURE__*/ vue.defineComponent({
     name: 'RouterView',
@@ -1824,14 +2196,13 @@ const RouterViewImpl = /*#__PURE__*/ vue.defineComponent({
                 ref: viewRef,
             }));
             return (
-            // pass the vnode to the slot as a prop.
-            // h and <component :is="..."> both accept vnodes
-            normalizeSlot(slots.default, { Component: component, route }) ||
+                // pass the vnode to the slot as a prop.
+                // h and <component :is="..."> both accept vnodes
+                normalizeSlot(slots.default, { Component: component, route }) ||
                 component);
         };
     },
 });
-
 function normalizeSlot(slot, data) {
     if (!slot)
         return null;
@@ -1866,9 +2237,9 @@ function createRouter(options) {
     }
     const normalizeParams = applyToParams.bind(null, paramValue => '' + paramValue);
     const encodeParams = applyToParams.bind(null, encodeParam);
-    const decodeParams = 
-    // @ts-expect-error: intentionally avoid the type check
-    applyToParams.bind(null, decode);
+    const decodeParams =
+        // @ts-expect-error: intentionally avoid the type check
+        applyToParams.bind(null, decode);
     function addRoute(parentOrRoute, route) {
         let parent;
         let record;
@@ -1947,15 +2318,15 @@ function createRouter(options) {
             // keep the hash encoded so fullPath is effectively path + encodedQuery +
             // hash
             hash,
-            query: 
-            // if the user is using a custom query lib like qs, we might have
-            // nested objects, so we keep the query as is, meaning it can contain
-            // numbers at `$route.query`, but at the point, the user will have to
-            // use their own type anyway.
-            // https://github.com/vuejs/router/issues/328#issuecomment-649481567
-            stringifyQuery$1 === stringifyQuery
-                ? normalizeQuery(rawLocation.query)
-                : (rawLocation.query || {}),
+            query:
+                // if the user is using a custom query lib like qs, we might have
+                // nested objects, so we keep the query as is, meaning it can contain
+                // numbers at `$route.query`, but at the point, the user will have to
+                // use their own type anyway.
+                // https://github.com/vuejs/router/issues/328#issuecomment-649481567
+                stringifyQuery$1 === stringifyQuery
+                    ? normalizeQuery(rawLocation.query)
+                    : (rawLocation.query || {}),
         }, matchedRoute, {
             redirectedFrom: undefined,
             href,
@@ -1990,7 +2361,7 @@ function createRouter(options) {
                     newTargetLocation.includes('?') || newTargetLocation.includes('#')
                         ? (newTargetLocation = locationAsObject(newTargetLocation))
                         : // force empty params
-                            { path: newTargetLocation };
+                        { path: newTargetLocation };
                 // @ts-expect-error: force empty params when a string is passed to let
                 // the router parse them again
                 newTargetLocation.params = {};
@@ -2018,9 +2389,9 @@ function createRouter(options) {
                     : data,
                 force,
                 replace,
-            }), 
-            // keep original redirectedFrom if it exists
-            redirectedFrom || targetLocation);
+            }),
+                // keep original redirectedFrom if it exists
+                redirectedFrom || targetLocation);
         // if it was a redirect we already called `pushWithRedirect` above
         const toLocation = targetLocation;
         toLocation.redirectedFrom = redirectedFrom;
@@ -2028,47 +2399,47 @@ function createRouter(options) {
         if (!force && isSameRouteLocation(stringifyQuery$1, from, targetLocation)) {
             failure = createRouterError(16 /* ErrorTypes.NAVIGATION_DUPLICATED */, { to: toLocation, from });
             // trigger scroll to allow scrolling to the same anchor
-            handleScroll(from, from, 
-            // this is a push, the only way for it to be triggered from a
-            // history.listen is with a redirect, which makes it become a push
-            true, 
-            // This cannot be the first navigation because the initial location
-            // cannot be manually navigated to
-            false);
+            handleScroll(from, from,
+                // this is a push, the only way for it to be triggered from a
+                // history.listen is with a redirect, which makes it become a push
+                true,
+                // This cannot be the first navigation because the initial location
+                // cannot be manually navigated to
+                false);
         }
         return (failure ? Promise.resolve(failure) : navigate(toLocation, from))
             .catch((error) => isNavigationFailure(error)
-            ? // navigation redirects still mark the router as ready
+                ? // navigation redirects still mark the router as ready
                 isNavigationFailure(error, 2 /* ErrorTypes.NAVIGATION_GUARD_REDIRECT */)
                     ? error
                     : markAsReady(error) // also returns the error
-            : // reject any unknown error
+                : // reject any unknown error
                 triggerError(error, toLocation, from))
             .then((failure) => {
-            if (failure) {
-                if (isNavigationFailure(failure, 2 /* ErrorTypes.NAVIGATION_GUARD_REDIRECT */)) {
-                    return pushWithRedirect(
-                    // keep options
-                    assign({
-                        // preserve an existing replacement but allow the redirect to override it
-                        replace,
-                    }, locationAsObject(failure.to), {
-                        state: typeof failure.to === 'object'
-                            ? assign({}, data, failure.to.state)
-                            : data,
-                        force,
-                    }), 
-                    // preserve the original redirectedFrom if any
-                    redirectedFrom || toLocation);
+                if (failure) {
+                    if (isNavigationFailure(failure, 2 /* ErrorTypes.NAVIGATION_GUARD_REDIRECT */)) {
+                        return pushWithRedirect(
+                            // keep options
+                            assign({
+                                // preserve an existing replacement but allow the redirect to override it
+                                replace,
+                            }, locationAsObject(failure.to), {
+                                state: typeof failure.to === 'object'
+                                    ? assign({}, data, failure.to.state)
+                                    : data,
+                                force,
+                            }),
+                            // preserve the original redirectedFrom if any
+                            redirectedFrom || toLocation);
+                    }
                 }
-            }
-            else {
-                // if we fail we don't finalize the navigation
-                failure = finalizeNavigation(toLocation, from, true, replace, data);
-            }
-            triggerAfterEach(toLocation, from, failure);
-            return failure;
-        });
+                else {
+                    // if we fail we don't finalize the navigation
+                    failure = finalizeNavigation(toLocation, from, true, replace, data);
+                }
+                triggerAfterEach(toLocation, from, failure);
+                return failure;
+            });
     }
     /**
      * Helper to reject and skip all navigation guards if a new navigation happened
@@ -2103,68 +2474,68 @@ function createRouter(options) {
         // run the queue of per route beforeRouteLeave guards
         return (runGuardQueue(guards)
             .then(() => {
-            // check global guards beforeEach
-            guards = [];
-            for (const guard of beforeGuards.list()) {
-                guards.push(guardToPromiseFn(guard, to, from));
-            }
-            guards.push(canceledNavigationCheck);
-            return runGuardQueue(guards);
-        })
-            .then(() => {
-            // check in components beforeRouteUpdate
-            guards = extractComponentsGuards(updatingRecords, 'beforeRouteUpdate', to, from);
-            for (const record of updatingRecords) {
-                record.updateGuards.forEach(guard => {
+                // check global guards beforeEach
+                guards = [];
+                for (const guard of beforeGuards.list()) {
                     guards.push(guardToPromiseFn(guard, to, from));
-                });
-            }
-            guards.push(canceledNavigationCheck);
-            // run the queue of per route beforeEnter guards
-            return runGuardQueue(guards);
-        })
+                }
+                guards.push(canceledNavigationCheck);
+                return runGuardQueue(guards);
+            })
             .then(() => {
-            // check the route beforeEnter
-            guards = [];
-            for (const record of enteringRecords) {
-                // do not trigger beforeEnter on reused views
-                if (record.beforeEnter) {
-                    if (isArray(record.beforeEnter)) {
-                        for (const beforeEnter of record.beforeEnter)
-                            guards.push(guardToPromiseFn(beforeEnter, to, from));
-                    }
-                    else {
-                        guards.push(guardToPromiseFn(record.beforeEnter, to, from));
+                // check in components beforeRouteUpdate
+                guards = extractComponentsGuards(updatingRecords, 'beforeRouteUpdate', to, from);
+                for (const record of updatingRecords) {
+                    record.updateGuards.forEach(guard => {
+                        guards.push(guardToPromiseFn(guard, to, from));
+                    });
+                }
+                guards.push(canceledNavigationCheck);
+                // run the queue of per route beforeEnter guards
+                return runGuardQueue(guards);
+            })
+            .then(() => {
+                // check the route beforeEnter
+                guards = [];
+                for (const record of enteringRecords) {
+                    // do not trigger beforeEnter on reused views
+                    if (record.beforeEnter) {
+                        if (isArray(record.beforeEnter)) {
+                            for (const beforeEnter of record.beforeEnter)
+                                guards.push(guardToPromiseFn(beforeEnter, to, from));
+                        }
+                        else {
+                            guards.push(guardToPromiseFn(record.beforeEnter, to, from));
+                        }
                     }
                 }
-            }
-            guards.push(canceledNavigationCheck);
-            // run the queue of per route beforeEnter guards
-            return runGuardQueue(guards);
-        })
+                guards.push(canceledNavigationCheck);
+                // run the queue of per route beforeEnter guards
+                return runGuardQueue(guards);
+            })
             .then(() => {
-            // NOTE: at this point to.matched is normalized and does not contain any () => Promise<Component>
-            // clear existing enterCallbacks, these are added by extractComponentsGuards
-            to.matched.forEach(record => (record.enterCallbacks = {}));
-            // check in-component beforeRouteEnter
-            guards = extractComponentsGuards(enteringRecords, 'beforeRouteEnter', to, from);
-            guards.push(canceledNavigationCheck);
-            // run the queue of per route beforeEnter guards
-            return runGuardQueue(guards);
-        })
+                // NOTE: at this point to.matched is normalized and does not contain any () => Promise<Component>
+                // clear existing enterCallbacks, these are added by extractComponentsGuards
+                to.matched.forEach(record => (record.enterCallbacks = {}));
+                // check in-component beforeRouteEnter
+                guards = extractComponentsGuards(enteringRecords, 'beforeRouteEnter', to, from);
+                guards.push(canceledNavigationCheck);
+                // run the queue of per route beforeEnter guards
+                return runGuardQueue(guards);
+            })
             .then(() => {
-            // check global guards beforeResolve
-            guards = [];
-            for (const guard of beforeResolveGuards.list()) {
-                guards.push(guardToPromiseFn(guard, to, from));
-            }
-            guards.push(canceledNavigationCheck);
-            return runGuardQueue(guards);
-        })
+                // check global guards beforeResolve
+                guards = [];
+                for (const guard of beforeResolveGuards.list()) {
+                    guards.push(guardToPromiseFn(guard, to, from));
+                }
+                guards.push(canceledNavigationCheck);
+                return runGuardQueue(guards);
+            })
             // catch any navigation canceled
             .catch(err => isNavigationFailure(err, 8 /* ErrorTypes.NAVIGATION_CANCELLED */)
-            ? err
-            : Promise.reject(err)));
+                ? err
+                : Promise.reject(err)));
     }
     function triggerAfterEach(to, from, failure) {
         // navigation is confirmed, call afterGuards
@@ -2230,67 +2601,67 @@ function createRouter(options) {
             }
             navigate(toLocation, from)
                 .catch((error) => {
-                if (isNavigationFailure(error, 4 /* ErrorTypes.NAVIGATION_ABORTED */ | 8 /* ErrorTypes.NAVIGATION_CANCELLED */)) {
-                    return error;
-                }
-                if (isNavigationFailure(error, 2 /* ErrorTypes.NAVIGATION_GUARD_REDIRECT */)) {
-                    // Here we could call if (info.delta) routerHistory.go(-info.delta,
-                    // false) but this is bug prone as we have no way to wait the
-                    // navigation to be finished before calling pushWithRedirect. Using
-                    // a setTimeout of 16ms seems to work but there is no guarantee for
-                    // it to work on every browser. So instead we do not restore the
-                    // history entry and trigger a new navigation as requested by the
-                    // navigation guard.
-                    // the error is already handled by router.push we just want to avoid
-                    // logging the error
-                    pushWithRedirect(error.to, toLocation
-                    // avoid an uncaught rejection, let push call triggerError
-                    )
-                        .then(failure => {
-                        // manual change in hash history #916 ending up in the URL not
-                        // changing, but it was changed by the manual url change, so we
-                        // need to manually change it ourselves
-                        if (isNavigationFailure(failure, 4 /* ErrorTypes.NAVIGATION_ABORTED */ |
-                            16 /* ErrorTypes.NAVIGATION_DUPLICATED */) &&
-                            !info.delta &&
-                            info.type === NavigationType.pop) {
-                            routerHistory.go(-1, false);
-                        }
-                    })
-                        .catch(noop);
-                    // avoid the then branch
-                    return Promise.reject();
-                }
-                // do not restore history on unknown direction
-                if (info.delta) {
-                    routerHistory.go(-info.delta, false);
-                }
-                // unrecognized error, transfer to the global handler
-                return triggerError(error, toLocation, from);
-            })
-                .then((failure) => {
-                failure =
-                    failure ||
-                        finalizeNavigation(
-                        // after navigation, all matched components are resolved
-                        toLocation, from, false);
-                // revert the navigation
-                if (failure) {
-                    if (info.delta &&
-                        // a new navigation has been triggered, so we do not want to revert, that will change the current history
-                        // entry while a different route is displayed
-                        !isNavigationFailure(failure, 8 /* ErrorTypes.NAVIGATION_CANCELLED */)) {
+                    if (isNavigationFailure(error, 4 /* ErrorTypes.NAVIGATION_ABORTED */ | 8 /* ErrorTypes.NAVIGATION_CANCELLED */)) {
+                        return error;
+                    }
+                    if (isNavigationFailure(error, 2 /* ErrorTypes.NAVIGATION_GUARD_REDIRECT */)) {
+                        // Here we could call if (info.delta) routerHistory.go(-info.delta,
+                        // false) but this is bug prone as we have no way to wait the
+                        // navigation to be finished before calling pushWithRedirect. Using
+                        // a setTimeout of 16ms seems to work but there is no guarantee for
+                        // it to work on every browser. So instead we do not restore the
+                        // history entry and trigger a new navigation as requested by the
+                        // navigation guard.
+                        // the error is already handled by router.push we just want to avoid
+                        // logging the error
+                        pushWithRedirect(error.to, toLocation
+                            // avoid an uncaught rejection, let push call triggerError
+                        )
+                            .then(failure => {
+                                // manual change in hash history #916 ending up in the URL not
+                                // changing, but it was changed by the manual url change, so we
+                                // need to manually change it ourselves
+                                if (isNavigationFailure(failure, 4 /* ErrorTypes.NAVIGATION_ABORTED */ |
+                                    16 /* ErrorTypes.NAVIGATION_DUPLICATED */) &&
+                                    !info.delta &&
+                                    info.type === NavigationType.pop) {
+                                    routerHistory.go(-1, false);
+                                }
+                            })
+                            .catch(noop);
+                        // avoid the then branch
+                        return Promise.reject();
+                    }
+                    // do not restore history on unknown direction
+                    if (info.delta) {
                         routerHistory.go(-info.delta, false);
                     }
-                    else if (info.type === NavigationType.pop &&
-                        isNavigationFailure(failure, 4 /* ErrorTypes.NAVIGATION_ABORTED */ | 16 /* ErrorTypes.NAVIGATION_DUPLICATED */)) {
-                        // manual change in hash history #916
-                        // it's like a push but lacks the information of the direction
-                        routerHistory.go(-1, false);
+                    // unrecognized error, transfer to the global handler
+                    return triggerError(error, toLocation, from);
+                })
+                .then((failure) => {
+                    failure =
+                        failure ||
+                        finalizeNavigation(
+                            // after navigation, all matched components are resolved
+                            toLocation, from, false);
+                    // revert the navigation
+                    if (failure) {
+                        if (info.delta &&
+                            // a new navigation has been triggered, so we do not want to revert, that will change the current history
+                            // entry while a different route is displayed
+                            !isNavigationFailure(failure, 8 /* ErrorTypes.NAVIGATION_CANCELLED */)) {
+                            routerHistory.go(-info.delta, false);
+                        }
+                        else if (info.type === NavigationType.pop &&
+                            isNavigationFailure(failure, 4 /* ErrorTypes.NAVIGATION_ABORTED */ | 16 /* ErrorTypes.NAVIGATION_DUPLICATED */)) {
+                            // manual change in hash history #916
+                            // it's like a push but lacks the information of the direction
+                            routerHistory.go(-1, false);
+                        }
                     }
-                }
-                triggerAfterEach(toLocation, from, failure);
-            })
+                    triggerAfterEach(toLocation, from, failure);
+                })
                 // avoid warnings in the console about uncaught rejections, they are logged by triggerErrors
                 .catch(noop);
         });
@@ -2367,9 +2738,9 @@ function createRouter(options) {
         options,
         push,
         replace,
-        go,
-        back: () => go(-1),
-        forward: () => go(1),
+        // go,
+        // back: () => go(-1),
+        // forward: () => go(1),
         beforeEach: beforeGuards.add,
         beforeResolve: beforeResolveGuards.add,
         afterEach: afterGuards.add,
@@ -2469,17 +2840,18 @@ function useRouter() {
 function useRoute() {
     return vue.inject(routeLocationKey);
 }
+
+exports.RouterLink = RouterLink;
 exports.RouterView = RouterView;
 exports.START_LOCATION = START_LOCATION_NORMALIZED;
-
+//exports.createMemoryHistory = createMemoryHistory;
 exports.createRouter = createRouter;
-
 exports.createRouterMatcher = createRouterMatcher;
-
+//exports.createWebHashHistory = createWebHashHistory;
+exports.createWebHistory = createWebHistory;
 exports.isNavigationFailure = isNavigationFailure;
 exports.loadRouteLocation = loadRouteLocation;
 exports.matchedRouteKey = matchedRouteKey;
-
 exports.onBeforeRouteLeave = onBeforeRouteLeave;
 exports.onBeforeRouteUpdate = onBeforeRouteUpdate;
 exports.parseQuery = parseQuery;
