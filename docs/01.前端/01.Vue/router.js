@@ -2264,6 +2264,7 @@ function createRouter(options) {
     function hasRoute(name) {
         return !!matcher.getRecordMatcher(name);
     }
+
     function resolve(rawLocation, currentLocation) {
         // const objectLocation = routerLocationAsObject(rawLocation)
         // we create a copy to modify it later
@@ -2313,6 +2314,7 @@ function createRouter(options) {
             path: matchedRoute.path,
         }));
         const href = routerHistory.createHref(fullPath);
+
         return assign({
             fullPath,
             // keep the hash encoded so fullPath is effectively path + encodedQuery +
@@ -2332,6 +2334,7 @@ function createRouter(options) {
             href,
         });
     }
+    
     function locationAsObject(to) {
         return typeof to === 'string'
             ? parseURL(parseQuery$1, to, currentRoute.value.path)
