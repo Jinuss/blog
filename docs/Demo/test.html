@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+
+</body>
+<script>
+    var obj = {
+        a: 1, 
+        b: 2,
+        c: { e: 4 },
+        get b(){
+            console.log("get:b")
+            return 3
+        }
+    }
+    const proxy = new Proxy(obj, {
+        get(target, key, receiver) {
+            console.log('proxy:get', target, key, receiver)
+            return Reflect.get(target, key, receiver)
+        },
+        set(target, key, value, receiver) {
+            return Reflect.set(target, key, value, receiver)
+        }
+    })
+
+    proxy.a = 2
+    console.log("🚀 ~ obj:", obj)
+    obj.b = 3
+    console.log("🚀 ~ obj:", proxy.b)
+    console.log("🚀 ~ obj:", obj.b)
+</script>
+
+</html>
