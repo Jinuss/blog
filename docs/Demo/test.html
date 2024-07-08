@@ -8,14 +8,29 @@
 </head>
 
 <body>
-
+    <form id="myForm">
+        <input type="text" name="username" value="John Doe" />
+        <input type="number" name="age" value="30" />
+        <input type="checkbox" name="isAdmin" checked />
+    </form>
+    <button onClick="getForm()">获取表单</button>
 </body>
 <script>
+    function getForm() {
+        let el=document.getElementById('myForm');
+        let formData = new FormData(el);
+        formData.append('flag',true)
+        for (let [key, value] of formData.entries()) {
+            console.log(key, value);
+        }
+        console.log("🚀 ~ getForm ~ formData:",typeof formData.get('isAdmin'))
+        
+    }
     var obj = {
-        a: 1, 
+        a: 1,
         b: 2,
         c: { e: 4 },
-        get b(){
+        get b() {
             console.log("get:b")
             return 3
         }
@@ -35,6 +50,8 @@
     obj.b = 3
     console.log("🚀 ~ obj:", proxy.b)
     console.log("🚀 ~ obj:", obj.b)
+
+
 </script>
 
 </html>
