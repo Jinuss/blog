@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>跨标签通讯</title>
+  </head>
+  <style>
+    .card {
+      width: 300px;
+      height: 300px;
+      background-color: #f00;
+      position: fixed;
+      top: 100px;
+      left: 100px;
+    }
+  </style>
+  <body>
+    跨标签通讯
+    <div class="card">card</div>
+  </body>
+  <script>
+    const barHeight = () => window.outerHeight - window.innerHeight;
+    const cardDom = document.querySelector(".card");
+    cardDom.style.top = 100 + "px";
+    cardDom.style.left = 100 + "px";
+    cardDom.style.background =
+      new URLSearchParams(window.location.search).get("color") || "red";
+ 
+    
+    const screenToClient = (screenX, screenY) => {
+      const clienX = screenX - window.screenX;
+      const clienY = screenY - window.screenY - barHeight();
+      return [clienX, clienY];
+    };
+ 
+    
+    const clientToScreen = (clienX, clienY) => {
+      const screenX = clienX + window.screenX;
+      const screenY = clienY + window.screenY + barHeight();
+      return [screenX, screenY];
+    };
+ 
+    
+    const channel = new BroadcastChannel("myChannel");
+    
+    channel.onmessage = (event) => {
+      
+      const [clienX, clienY] = screenToClient(...event.data);
+      
+      cardDom.style.left = clienX + "px";
+      cardDom.style.top = clienY + "px";
+    };
+ 
+    
+    const sendMessage = (message) => {
+      channel.postMessage(message);
+    };
+ 
+    window.onload = function () {
+      cardDom.onmousedown = function (e) {
+        cardDom.style.cursor = "pointer";
+        let x = e.pageX - cardDom.offsetLeft;
+        let y = e.pageY - cardDom.offsetTop;
+        window.onmousemove = function (e) {
+          cardDom.style.left = e.clientX - x + "px";
+          cardDom.style.top = e.clientY - y + "px";
+          
+          const clientCoordinateX = e.clientX - x;
+          const clientCoordinateY = e.clientY - y;
+          const ScreenCoordinate = clientToScreen(
+            clientCoordinateX,
+            clientCoordinateY
+          );
+          sendMessage(ScreenCoordinate);
+        };
+        window.onmouseup = function () {
+          window.onmousemove = null;
+          window.onmouseup = null;
+          cardDom.style.cursor = "unset";
+        };
+      };
+    };
+  </script>
+</html>
+ 

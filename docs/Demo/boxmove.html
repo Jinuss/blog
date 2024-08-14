@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+
+<head>
+    <style>
+        * {
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        .box {
+            height: 300px;
+            width: 300px;
+            background-color: red;
+            position: absolute;
+            top: 100px;
+            left: 100px;
+            text-align: center;
+            display: flex;
+            align-content: center;
+            justify-content: center;
+            align-items: center;
+            color: #FFF
+        }
+
+        .box:hover {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="box">Hello World</div>
+    <script>
+        const el = {
+            box: document.querySelector('.box')
+        }
+        const barHeight = () => window.outerHeight - window.innerHeight;
+        const channel = new BroadcastChannel("myChannel");
+        console.log("🚀 ~ channel:", channel)
+
+        channel.onmessage = (event) => {
+
+            const [clienX, clienY] = screenToClient(...event.data);
+
+            el.box.style.left = clienX + "px";
+            el.box.style.top = clienY + "px";
+        };
+
+
+        const sendMessage = (message) => {
+            channel.postMessage(message);
+        };
+
+        el.box.onmousedown = (e) => {
+            const { pageX, pageY } = e
+            console.log("🚀 ~ e:", e)
+            console.log("🚀 ~ pageX, pageY:", pageX, pageY)
+            let x = pageX - el.box.offsetLeft, y = pageY - el.box.offsetTop;
+            el.box.style.cursor = "grab"
+            window.onmousemove = (ev) => {
+                el.box.style.cursor = "grabbing"
+                el.box.style.left = ev.clientX - x + "px";
+                el.box.style.top = ev.clientY - y + "px";
+                const clientCoordinateX = ev.clientX - x;
+                const clientCoordinateY = ev.clientY - y;
+                const ScreenCoordinate = clientToScreen(
+                    clientCoordinateX,
+                    clientCoordinateY
+                );
+                sendMessage(ScreenCoordinate);
+
+            }
+            window.onmouseup = function () {
+                window.onmousemove = null;
+                window.onmouseup = null;
+                el.box.style.cursor = "unset";
+            };
+        }
+
+        function screenToClient(screenX, screenY) {
+            const clienX = screenX - window.screenX;
+            const clienY = screenY - window.screenY - barHeight();
+            return [clienX, clienY];
+        };
+
+
+        function clientToScreen(clienX, clienY) {
+            const screenX = clienX + window.screenX;
+            const screenY = clienY + window.screenY + barHeight();
+            return [screenX, screenY];
+        };
+    </script>
+</body>
+
+</html>
