@@ -299,9 +299,9 @@ export default defineConfig4CustomTheme<VdoingThemeConfig>({
         options: {
           // clientID: 'a6e1355287947096b88b',
           // clientSecret: 'f0e77d070fabfcd5af95bebb82b2d574d7248d71',
-          repo: 'blog-gitalk-comment', // GitHub 仓库
-          owner: 'xugaoyi', // GitHub仓库所有者
-          admin: ['xugaoyi'], // 对仓库有写权限的人
+          repo: 'blog', // GitHub 仓库
+          owner: 'Jinuss', // GitHub仓库所有者
+          admin: ['Jinuss'], // 对仓库有写权限的人
           // distractionFreeMode: true,
           pagerDirection: 'last', // 'first'正序 | 'last'倒序
           id: '<%- (frontmatter.permalink || frontmatter.to.path).slice(-16) %>', //  页面的唯一标识,长度不能超过50
