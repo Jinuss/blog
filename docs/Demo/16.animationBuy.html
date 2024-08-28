@@ -7,13 +7,19 @@
     <title>Document</title>
 </head>
 <style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
     span.add {
         margin-left: var(--left);
         margin-top: var(--top);
         display: inline-block;
         width: 20px;
         height: 20px;
-        animation: moveY 5s cubic-bezier(0.5, -0.5, 1, 1);
+        position: absolute;
+        animation: moveY 1s cubic-bezier(0.5, -0.5, 1, 1);
     }
 
     span.add i {
@@ -23,10 +29,7 @@
         height: 20px;
         font-size: 16px;
         border-radius: 50%;
-    }
-
-    span.add i {
-        animation: moveX 5s linear;
+        animation: moveX 1s linear;
     }
 
     span.bulk {
@@ -61,23 +64,14 @@
         width: 100px;
         height: 36px;
         border: 0;
-        margin-left: 500px;
-        margin-top: 150px;
-        cursor: pointer;
+        left: 500px;
+        top: 150px;
+        position: relative;
+        cursor: pointer; /**/
     }
 </style>
 
 <body>
-    <!-- <span class="add" style="--left:300px;--top:150px;--y:400px;--x:-200px;">
-        <i>
-            <svg t="1724757674752" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
-                p-id="6405" width="20" height="20">
-                <path
-                    d="M810.666667 490.666667v42.666666a21.333333 21.333333 0 0 1-21.333334 21.333334H554.666667v234.666666a21.333333 21.333333 0 0 1-21.333334 21.333334h-42.666666a21.333333 21.333333 0 0 1-21.333334-21.333334V554.666667H234.666667a21.333333 21.333333 0 0 1-21.333334-21.333334v-42.666666a21.333333 21.333333 0 0 1 21.333334-21.333334H469.333333V234.666667a21.333333 21.333333 0 0 1 21.333334-21.333334h42.666666a21.333333 21.333333 0 0 1 21.333334 21.333334V469.333333h234.666666a21.333333 21.333333 0 0 1 21.333334 21.333334z"
-                    p-id="6406" fill="#ffffff"></path>
-            </svg>
-        </i>
-    </span> -->
     <button id="btn">add</button>
     <span class="bulk">
         <svg t="1724755384446" class="icon" viewBox="0 0 1028 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
@@ -89,14 +83,25 @@
     </span>
     <script>
         const doms = {
-            btn: document.querySelector('#btn')
+            btn: document.querySelector('#btn'),
+            bulk: document.querySelector('.bulk')
         }
         const posBtn = doms.btn.getBoundingClientRect()
+        console.log("🚀 ~ posBtn:", posBtn)
+        const w = h = 10;
+
         doms.btn.onclick = () => {
-            // alert(1) 
-            let sp = document.createElement('span');
-            sp.className = "add"
-            sp.innerHTML = `<i>
+            let spanPosition = { left: posBtn.left + posBtn.width / 2 - w, top: posBtn.top - posBtn.height / 2 + h }
+            const target = doms.bulk.getBoundingClientRect()
+            spanPosition.targetX = -(spanPosition.left - target.left - target.width / 2)
+            spanPosition.targetY = target.top - spanPosition.top - target.height / 2
+            let newSpan = document.createElement('span');
+            newSpan.className = "add";
+            newSpan.style.setProperty('--left', `${spanPosition.left}px`);
+            newSpan.style.setProperty('--top', `${spanPosition.top}px`);
+            newSpan.style.setProperty('--y', `${spanPosition.targetY}px`);
+            newSpan.style.setProperty('--x', `${spanPosition.targetX}px`);
+            newSpan.innerHTML = `<i>
                 <svg t="1724757674752" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="6405" width="20" height="20">
                     <path
                      d="M810.666667 490.666667v42.666666a21.333333 21.333333 0 0 1-21.333334 21.333334H554.666667v234.666666a21.333333 21.333333 0 0 1-21.333334 21.333334h-42.666666a21.333333 21.333333 0 0 1-21.333334-21.333334V554.666667H234.666667a21.333333 21.333333 0 0 1-21.333334-21.333334v-42.666666a21.333333 21.333333 0 0 1 21.333334-21.333334H469.333333V234.666667a21.333333 21.333333 0 0 1 21.333334-21.333334h42.666666a21.333333 21.333333 0 0 1 21.333334 21.333334V469.333333h234.666666a21.333333 21.333333 0 0 1 21.333334 21.333334z"
@@ -104,7 +109,11 @@
                     </path>
                 </svg></i>`
 
-            document.body.append(sp)
+            document.body.prepend(newSpan)
+
+            newSpan.addEventListener('animationend', () => {
+                newSpan.remove()
+            })
         }
     </script>
 </body>
