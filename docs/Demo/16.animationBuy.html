@@ -8,9 +8,8 @@
 </head>
 <style>
     span.add {
-        position: relative;
-        left: var(--left);
-        top: var(--top);
+        margin-left: var(--left);
+        margin-top: var(--top);
         display: inline-block;
         width: 20px;
         height: 20px;
@@ -55,10 +54,21 @@
             transform: translateX(var(--x));
         }
     }
+
+    button {
+        background-color: #438de8;
+        color: #fff;
+        width: 100px;
+        height: 36px;
+        border: 0;
+        margin-left: 500px;
+        margin-top: 150px;
+        cursor: pointer;
+    }
 </style>
 
 <body>
-    <span class="add" style="--left:300px;--top:150px;--y:400px;--x:-200px;">
+    <!-- <span class="add" style="--left:300px;--top:150px;--y:400px;--x:-200px;">
         <i>
             <svg t="1724757674752" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
                 p-id="6405" width="20" height="20">
@@ -67,7 +77,7 @@
                     p-id="6406" fill="#ffffff"></path>
             </svg>
         </i>
-    </span>
+    </span> -->
     <button id="btn">add</button>
     <span class="bulk">
         <svg t="1724755384446" class="icon" viewBox="0 0 1028 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
@@ -81,9 +91,20 @@
         const doms = {
             btn: document.querySelector('#btn')
         }
-
+        const posBtn = doms.btn.getBoundingClientRect()
         doms.btn.onclick = () => {
-            alert(1)
+            // alert(1) 
+            let sp = document.createElement('span');
+            sp.className = "add"
+            sp.innerHTML = `<i>
+                <svg t="1724757674752" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="6405" width="20" height="20">
+                    <path
+                     d="M810.666667 490.666667v42.666666a21.333333 21.333333 0 0 1-21.333334 21.333334H554.666667v234.666666a21.333333 21.333333 0 0 1-21.333334 21.333334h-42.666666a21.333333 21.333333 0 0 1-21.333334-21.333334V554.666667H234.666667a21.333333 21.333333 0 0 1-21.333334-21.333334v-42.666666a21.333333 21.333333 0 0 1 21.333334-21.333334H469.333333V234.666667a21.333333 21.333333 0 0 1 21.333334-21.333334h42.666666a21.333333 21.333333 0 0 1 21.333334 21.333334V469.333333h234.666666a21.333333 21.333333 0 0 1 21.333334 21.333334z"
+                     p-id="6406" fill="#ffffff"> 
+                    </path>
+                </svg></i>`
+
+            document.body.append(sp)
         }
     </script>
 </body>
