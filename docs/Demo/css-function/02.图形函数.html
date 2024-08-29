@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    :root {
+        --white-color: #fff;
+        --black-color: #000
+    }
+
+    html,
+    body {
+        height: 100%;
+    }
+
+    .container {
+        display: flex;
+        height: 100%;
+        width: 100%;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .container>div {
+        height: 100px;
+        width: 100px;
+    }
+
+    div.A {
+        clip-path: circle(50px);
+        background-color: red;
+    }
+
+    div.B {
+        clip-path: circle(50px at right center);
+        background-color: green;
+    }
+
+    div.C {
+        clip-path: circle(25% at 100% 50%);
+        background-color: rgb(13, 0, 128);
+    }
+
+    div.D {
+        clip-path: circle(closest-side);
+        background-color: #98dd18;
+    }
+    div.E{
+        clip-path: circle(farthest-side);
+        background-color: antiquewhite;
+    }
+</style>
+
+<body>
+    <div class="container">
+        <p>Circle:</p>
+        <div class="A"></div>
+        <div class="B"></div>
+        <div class="C"></div>
+        <div class="D"></div>
+        <div class="E"></div>
+    </div>
+</body>
+
+</html>
