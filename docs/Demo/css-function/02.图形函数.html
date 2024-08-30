@@ -28,46 +28,227 @@
         width: 100%;
         justify-content: center;
         align-items: center;
+        flex-direction: column;
     }
 
-    .container>div {
+    .container>div.item {
+        display: flex;
+    }
+
+    .container>div.item>div {
+        height: 100px;
+        width: 100px;
+        margin: 10px;
+    }
+
+    .container>div.item div.A {
+        height: 100px;
+        width: 300px;
+        background-color: #e7c465;
+    }
+    div.A div.A1 {
+        height: 80px;
+        clip-path: inset(10px);
+        background-color: #6beec2;
+    }
+
+    div.A div.A2 {
+        height: 80px;
+        clip-path: inset(20px 10px round 20px);
+        background-color: #6beec2;
+    }
+
+    div.C {
+        background-color: #82d6f079;
+    }
+
+    div.C>div {
         height: 100px;
         width: 100px;
     }
 
-    div.A {
+    div.C1 {
         clip-path: circle(50px);
         background-color: red;
     }
 
-    div.B {
+    div.C2 {
         clip-path: circle(50px at right center);
         background-color: green;
     }
 
-    div.C {
+    div.C3 {
         clip-path: circle(25% at 100% 50%);
         background-color: rgb(13, 0, 128);
     }
 
-    div.D {
+    div.C4 {
         clip-path: circle(closest-side);
         background-color: #98dd18;
     }
-    div.E{
+
+    div.C5 {
         clip-path: circle(farthest-side);
         background-color: antiquewhite;
+    }
+
+    div.B {
+        background-color: #6beec2;
+    }
+
+    div.B>div {
+        height: 100px;
+        width: 100px;
+    }
+
+    div.B1 {
+        clip-path: ellipse(20px 50px);
+        background-color: #0dbcf1;
+    }
+
+    div.B2 {
+        clip-path: ellipse(4rem 50% at right center);
+        background-color: #bc0df1;
+    }
+
+    div.B3 {
+        clip-path: ellipse(closest-side closest-side at 25px 60px);
+        background-color: #f10d77;
+    }
+
+    div.B4 {
+        clip-path: ellipse(closest-side farthest-side);
+        background-color: #f10d20;
+    }
+
+    div.J {
+        background-color: rgba(250, 235, 215, 0.514);
+    }
+
+
+    div.J div {
+        width: 100px;
+        height: 100px;
+        background-color: #bc0df1;
+    }
+
+    div.J div.J1 {
+        clip-path: polygon(0% 20%,
+                60% 20%,
+                60% 0%,
+                100% 50%,
+                60% 100%,
+                60% 80%,
+                0% 80%);
+    }
+
+    div.J div.J2 {
+        clip-path: polygon(40% 40%,
+                40% 80%,
+                80% 40%,
+                80% 80%);
+    }
+
+    div.J div.J3 {
+        clip-path: polygon(50% 0%,
+                100% 50%,
+                50% 100%,
+                0% 50%);
+    }
+
+
+    div.J div.J4 {
+        clip-path: polygon(10% 10%,
+                10% 40%,
+                80% 40%,
+                80% 10%);
+    }
+
+    div.K {
+        background-color: rgba(250, 235, 215, 0.514);
+    }
+
+    div.K>div {
+        height: 100px;
+        width: 100px;
+    }
+
+    div.K .K1 {
+        clip-path: path('M  5  60  L  5  20 L 40  20 L 40  5 L 70 25 L 40 45 L 40 30 L  15  30 L  15 60 Z');
+        background-color: red;
+    }
+
+    p {
+        font-weight: bolder;
     }
 </style>
 
 <body>
     <div class="container">
-        <p>Circle:</p>
-        <div class="A"></div>
-        <div class="B"></div>
-        <div class="C"></div>
-        <div class="D"></div>
-        <div class="E"></div>
+        <div class="item">
+            <p>inset</p>
+            <div class="A">
+                <div class="A1"></div>
+                </div>
+            <div class="A">    
+                <div class="A2"></div>
+            </div>
+        </div>
+        <div class="item">
+            <p>circle</p>
+            <div class="C">
+                <div class="C1"></div>
+            </div>
+            <div class="C">
+                <div class="C2"></div>
+            </div>
+            <div class="C">
+                <div class="C3"></div>
+            </div>
+            <div class="C">
+                <div class="C4"></div>
+            </div>
+            <div class="C">
+                <div class="C5"></div>
+            </div>
+        </div>
+
+        <div class="item">
+            <p>ellipse</p>
+            <div class="B">
+                <div class="B2"></div>
+            </div>
+            <div class="B">
+                <div class="B2"></div>
+            </div>
+            <div class="B">
+                <div class="B3"></div>
+            </div>
+            <div class="B">
+                <div class="B4"></div>
+            </div>
+        </div>
+        <div class="item">
+            <p>polygon</p>
+            <div class="J">
+                <div class="J1"></div>
+            </div>
+            <div class="J">
+                <div class="J2"></div>
+            </div>
+            <div class="J">
+                <div class="J3"></div>
+            </div>
+            <div class="J">
+                <div class="J4"></div>
+            </div>
+        </div>
+        <div class="item">
+            <p>path</p>
+            <div class="K">
+                <div class="K1"></div>
+            </div>
+        </div>
     </div>
 </body>
 
