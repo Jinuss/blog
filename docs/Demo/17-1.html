@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Image Processing with Smoothing</title>
     <style>
-        canvas { border: 1px solid #000; }
+        canvas {
+            border: 1px solid #000;
+        }
     </style>
 </head>
+
 <body>
     <input type="file" id="fileInput" accept="image/*">
     <canvas id="canvas"></canvas>
@@ -22,9 +26,9 @@
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     const img = new Image();
-                    img.onload = function() {
+                    img.onload = function () {
                         canvas.width = img.width;
                         canvas.height = img.height;
                         ctx.drawImage(img, 0, 0);
@@ -38,10 +42,14 @@
                             const g = data[i + 1];
                             const b = data[i + 2];
 
-                            if (r === 0 && g === 0 && b === 0) {
+                            if ((r + g + b) <= 30) {
+                                // White color: change to yellow
+                                data[i] = 255;     // red channel
+                                data[i + 1] = 255; // green channel
+                                data[i + 2] = 255;   // blue channel
                                 // Black color: change to transparent
                                 data[i + 3] = 0; // alpha channel
-                            } else if (r === 255 && g === 255 && b === 255) {
+                            } else if ((Math.abs(255 - r) + Math.abs(255 - g) + Math.abs(255 - b)) <= 30) {
                                 // White color: change to yellow
                                 data[i] = 255;     // red channel
                                 data[i + 1] = 255; // green channel
@@ -85,4 +93,5 @@
         }
     </script>
 </body>
+
 </html>

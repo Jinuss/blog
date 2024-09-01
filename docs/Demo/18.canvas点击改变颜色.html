@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    html,
+    body,
+    .container {
+        height: 100%;
+        width: 100%;
+    }
+
+    .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    input {
+        width: 70px;
+    }
+
+    canvas {
+        margin: 0 10px;
+    }
+
+    .currentColor {
+        display: inline-block;
+        width: 100px;
+        height: 32px;
+        margin-left: 5px;
+    }
+</style>
+
+<body>
+    <div class="container">
+        <input type="file" id="fileInput" accept="image/*">
+        <canvas id="canvas"></canvas>
+        <span><input type="color" class="pick" /><span class="currentColor"></span></span>
+    </div>
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const canvas = document.getElementById('canvas');
+        const colorTarget = document.querySelector(".currentColor")
+        const colorPicker = document.querySelector('.pick')
+        let initColor = "#000";
+
+        colorPicker.addEventListener('input', (p) => {
+            initColor = p.target.value;
+            changeTargetColor()
+        })
+        changeTargetColor()
+
+        const ctx = canvas.getContext('2d');
+
+        canvas.addEventListener('click', (e) => {
+            const { offsetX, offsetY } = e;
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            console.log("🚀 ~ canvas.addEventListener ~ canvas.width, canvas.height:", canvas.width, canvas.height)
+            console.log("🚀 ~ canvas.addEventListener ~ imageData:", imageData)
+            console.log("🚀 ~ canvas.addEventListener ~ offsetX, offsetY:", offsetX, offsetY)
+        })
+
+        function getColorByPos(x, y, data) {
+            let index = (x * canvas.width + y) * 4
+            return data[index]
+        }
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const img = new Image();
+                    img.onload = function () {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                    }
+                    img.src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function changeTargetColor() {
+            colorTarget.innerHTML = initColor
+        }
+    </script>
+</body>
+
+</html>
