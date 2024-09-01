@@ -60,19 +60,55 @@
         })
         changeTargetColor()
 
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
         canvas.addEventListener('click', (e) => {
             const { offsetX, offsetY } = e;
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            console.log("🚀 ~ canvas.addEventListener ~ canvas.width, canvas.height:", canvas.width, canvas.height)
             console.log("🚀 ~ canvas.addEventListener ~ imageData:", imageData)
             console.log("🚀 ~ canvas.addEventListener ~ offsetX, offsetY:", offsetX, offsetY)
+            changePositionColors(offsetX, offsetY, imageData.data)
+            ctx.putImageData(imageData, 0, 0)
+            // let currentColor = getColorByPos(offsetX, offsetY, imageData)
+            // let index = getIndexByPos(offsetX, offsetY);
+            // imageData.data.set([255, 0, 0, 1], index)
+            // ctx.putImageData(imageData, 0, 0)
+            // console.log("🚀 ~ canvas.addEventListener ~ currentColor :", currentColor)
         })
 
-        function getColorByPos(x, y, data) {
-            let index = (x * canvas.width + y) * 4
-            return data[index]
+        function compareColor(targetColor, currentColor) {
+            return (Math.abs(targetColor[0] - currentColor[0]) + Math.abs(targetColor[1] - currentColor[1]) + Math.abs(targetColor[2] - currentColor[2])) < 100
+        }
+        function changePositionColors(x, y, data) {
+            if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) {
+                return
+            }
+            let currentColor = getColorByPos(x, y, data)
+            if (compareColor([0, 0, 0, 255], currentColor)) {
+                return
+            }
+            // let currentColor = getColorByPos(x, y, data)
+            let index = getIndexByPos(x, y);
+            try{
+            (data).set([0, 0, 0, 0], index)
+            }catch(e){
+                 console.log("🚀 ~ changePositionColors ~ e:", e)
+                 console.log(x,y,index)
+                 return
+            }finally{
+            }
+            changePositionColors(x + 1, y, data)
+            changePositionColors(x, y + 1, data)
+            changePositionColors(x - 1, y, data)
+            changePositionColors(x, y - 1, data)
+        }
+
+        function getIndexByPos(x, y) {
+            return (y * canvas.width + x) * 4
+        }
+        function getColorByPos(x, y, ImageData) {
+            let index = getIndexByPos(x, y)
+            return [ImageData[index], ImageData[index + 1], ImageData[index + 2], ImageData[index + 3]]
         }
         fileInput.addEventListener('change', handleFileSelect);
 
