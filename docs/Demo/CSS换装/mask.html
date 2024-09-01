@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    html,
+    body,
+    .container {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .person,
+    .person2 {
+        width: 256px;
+        height: 512px;
+        background: url(dress.jpg);
+    }
+
+    .person2 {
+        margin: 0 10px 0 20px;
+        position: relative;
+    }
+
+    .dress {
+        position: absolute;
+        inset: 0;
+        mask: url(下载.png);
+        background-color: var(--color);
+        -webkit-mask: url(下载.png);
+        mix-blend-mode: multiply;
+    }
+
+    input {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 0
+    }
+</style>
+
+<body>
+    <div class="container">
+        <div class="person">
+        </div>
+        <div class="person2">
+            <div class="dress" style="--color:aquamarine"></div>
+        </div>
+
+        <input type="color" id="colorSelector" />
+    </div>
+
+    <script>
+        const doms = {
+            dress: document.querySelector('.dress'),
+            selector: document.querySelector("#colorSelector")
+        }
+
+        doms.selector.addEventListener('input', (p) => {
+            const color = p.target.value
+            doms.dress.style.setProperty('--color', `${color}`);
+        })
+    </script>
+</body>
+
+</html>
