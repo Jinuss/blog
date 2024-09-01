@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    #container {
+        margin: 0 auto;
+        margin-top: 20px;
+        height: 300px;
+        width: 400px;
+        background-color: rgba(15, 228, 72, 0.3);
+        display: flex;
+        justify-content: center;
+        align-content: center;
+        align-items: center;
+    }
+</style>
+
+<body>
+    <p>Hello word</p>
+    <div id="container">
+        <button id='btn'>全屏</button>
+    </div>
+    <script>
+        const doms = {
+            btn: document.querySelector("#btn"),
+            container: document.querySelector("#container")
+        }
+        doms.btn.addEventListener('click', () => {
+            if (isFull()) {
+                document.exitFullscreen().then(() => {
+                    console.log('全退出屏了')
+                })
+            } else {
+                doms.container.requestFullscreen().then(() => {
+                    console.log('全屏了')
+                }).catch((err) => {
+                    console.log(err.message)
+                })
+            }
+        })
+
+        function isFull() {
+            return !!document.fullscreenElement
+        }
+
+        document.onfullscreenchange = (e) => {
+            console.log("🚀 ~ e:", e)
+            return {
+            }
+        }
+    </script>
+</body>
+
+</html>
