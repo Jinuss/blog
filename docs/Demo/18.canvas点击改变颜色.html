@@ -69,11 +69,6 @@
             console.log("🚀 ~ canvas.addEventListener ~ offsetX, offsetY:", offsetX, offsetY)
             changePositionColors(offsetX, offsetY, imageData.data)
             ctx.putImageData(imageData, 0, 0)
-            // let currentColor = getColorByPos(offsetX, offsetY, imageData)
-            // let index = getIndexByPos(offsetX, offsetY);
-            // imageData.data.set([255, 0, 0, 1], index)
-            // ctx.putImageData(imageData, 0, 0)
-            // console.log("🚀 ~ canvas.addEventListener ~ currentColor :", currentColor)
         })
 
         function compareColor(targetColor, currentColor) {
@@ -81,33 +76,65 @@
         }
         function changePositionColors(x, y, data) {
             if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) {
-                return
+                return;
             }
-            let currentColor = getColorByPos(x, y, data)
-            if (compareColor([0, 0, 0, 255], currentColor)) {
-                return
+
+            const stack = [[x, y]];
+            const targetColor = new Uint8ClampedArray([255, 125, 0, 255]);
+            // const newPixelData = new Uint8ClampedArray([red, green, blue, alpha]);
+            const visited = new Set(); // To avoid processing the same pixel multiple times
+
+            while (stack.length > 0) {
+                const [currX, currY] = stack.pop();
+                const index = getIndexByPos(currX, currY);
+
+                // Ensure index is within bounds
+                if (index < 0 || index + 3 >= data.length) {
+                    continue;
+                }
+
+                if (visited.has(`${currX},${currY}`)) {
+                    continue
+                }
+                let currentColor = getColorByPos(currX, currY, data);
+                let flag = compareColor(targetColor, currentColor)
+                if (currentColor == -1 || (currentColor.length == 4 && flag)) {
+                    continue;
+                }
+
+                data.set(targetColor, index);
+
+                // Mark as visited to avoid processing the same pixel again
+                visited.add(`${currX},${currY}`);
+
+                // Push neighbors into the stack
+                const neighbors = [
+                    [currX + 1, currY],
+                    [currX - 1, currY],
+                    [currX, currY + 1],
+                    [currX, currY - 1]
+                ];
+
+                for (const [nx, ny] of neighbors) {
+                    const key = `${nx},${ny}`;
+                    if (!visited.has(key) && nx >= 0 && ny >= 0 && nx < canvas.width && ny < canvas.height) {
+                        stack.push([nx, ny]);
+                    }
+                }
             }
-            // let currentColor = getColorByPos(x, y, data)
-            let index = getIndexByPos(x, y);
-            try{
-            (data).set([0, 0, 0, 0], index)
-            }catch(e){
-                 console.log("🚀 ~ changePositionColors ~ e:", e)
-                 console.log(x,y,index)
-                 return
-            }finally{
-            }
-            changePositionColors(x + 1, y, data)
-            changePositionColors(x, y + 1, data)
-            changePositionColors(x - 1, y, data)
-            changePositionColors(x, y - 1, data)
         }
 
         function getIndexByPos(x, y) {
+            if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) {
+                return -1;
+            }
             return (y * canvas.width + x) * 4
         }
         function getColorByPos(x, y, ImageData) {
-            let index = getIndexByPos(x, y)
+            let index = getIndexByPos(x, y);
+            if (index < 0 || index + 3 >= ImageData.length) {
+                return -1; // Default color for out-of-bounds
+            }
             return [ImageData[index], ImageData[index + 1], ImageData[index + 2], ImageData[index + 3]]
         }
         fileInput.addEventListener('change', handleFileSelect);
@@ -123,11 +150,23 @@
                         canvas.height = img.height;
                         ctx.drawImage(img, 0, 0);
                     }
-                    img.src = e.target.result;
+                    img.src = '../';
                 }
                 reader.readAsDataURL(file);
             }
         }
+
+        function INIT() {
+            const img = new Image();
+            img.onload = function () {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+            }
+            img.src = '../Demo/image/imageData.jpeg';
+        }
+
+        INIT()
 
         function changeTargetColor() {
             colorTarget.innerHTML = initColor
