@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.0/color-thief.umd.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        body,
+        html {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(to bottom, var(--color1, #a59e9e), var(--color2, #a59e9e), var(--color3, #a59e9e));
+        }
+
+        .example01 img {
+            width: 350px;
+            height: 200px;
+            margin: 20px;
+            cursor: pointer;
+        }
+
+        .example02 img {
+            margin: 20px;
+            width: 450px;
+            height: 400px;
+        }
+
+        .example02 .panel {
+            height: calc(100% - 40px);
+            width: calc(100% - 450px);
+            margin: 20px;
+        }
+
+        .container {
+            height: 100%;
+            width: calc(100% - 40px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            align-content: center;
+            padding: 0 20px;
+        }
+
+        .exampleContainer {
+            width: 50%;
+            height: 500px;
+        }
+
+        .example01 {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            align-content: center;
+            flex-wrap: wrap;
+        }
+
+        .example02 {
+            background: #fff;
+            height: calc(100% - 22px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            align-content: center;
+        }
+
+        .exampleContainer:first-child p {
+            margin-left: 65px;
+        }
+
+        .color {
+            display: inline-block;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--color);
+            margin: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="exampleContainer">
+            <p>Example01</p>
+            <div class="example01">
+                <img src="image/img01.jpg" alt="">
+                <img src="image/img02.jpg" alt="">
+                <img src="image/img03.jpg" alt="">
+                <img src="image/img04.jpg" alt="">
+            </div>
+        </div>
+        <div class="exampleContainer">
+            <p>Example02</p>
+            <div class="example02">
+                <img src="image/image05.jpg" alt="">
+                <div class="panel">
+                    <div>
+                        <h4>主要颜色</h4>
+                        <span class="color" style="--color:#fff"></span>
+                    </div>
+                    <div>
+                        <h4>调色板</h4>
+                        <div>
+                            <span class="color"></span><span class="color"></span><span class="color"></span><span
+                                class="color"></span><span class="color"></span>
+                            <span class="color"></span><span class="color"></span><span class="color"></span><span
+                                class="color"></span><span class="color"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        window.onload = function () {
+            const doms = {
+                imgList: document.querySelectorAll(".example01 img"),
+                img: document.querySelector(".example02 img"),
+                colorSpan: document.querySelectorAll(".color")
+            }
+            const colorThief = new ColorThief();
+
+            doms.imgList.forEach((img) => {
+                img.addEventListener('click', async (e) => {
+                    console.log("🚀 ~ img1.addEventListener ~ e:", e.target)
+
+                    const p = await colorThief.getPalette(e.target, 3)
+
+                    console.log("🚀 ~ doms.img1.addEventListener ~ p:", p)
+                    let colorArr = [];
+                    p.forEach((item, index) => {
+                        const [r, g, b] = item
+                        colorArr[index] = `rgb(${r},${g},${b})`
+                    })
+                    colorArr.forEach((color, i) => {
+                        document.documentElement.style.setProperty(`--color${i + 1}`, color)
+                    })
+                })
+            })
+
+            initExample2()
+
+            async function initExample2() {
+                const p = await colorThief.getColor(doms.img)
+                console.log("🚀 ~ initExample2 ~ p:", p)
+                doms.colorSpan[0].style.setProperty('--color', `rgb(${p[0]},${p[1]},${p[2]})`)
+
+                const count = doms.colorSpan.length
+                const q = await colorThief.getPalette(doms.img, count)
+
+
+                q.forEach((item, index) => {
+                    const [r, g, b] = item
+                    doms.colorSpan[index + 1].style.setProperty('--color', `rgb(${r},${g},${b})`)
+
+                })
+            }
+        }
+    </script>
+</body>
+
+</html>
