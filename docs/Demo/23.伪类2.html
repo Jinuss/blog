@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            display: flex;
+            width: 80%;
+            margin: 20px auto;
+            flex-direction: column;
+        }
+
+        .container>div {
+            flex: 1;
+        }
+
+        .content {
+            margin-left: 20px;
+        }
+
+        .item {
+            margin-bottom: 10px;
+        }
+
+        .children span {
+            display: inline-flex;
+            width: 80px;
+            height: 25px;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #ccc;
+            margin: 10px;
+        }
+
+        .order {
+
+            .first {
+
+                .children.pre span:nth-child(-n+3) {
+                    background: rgb(30, 120, 223);
+                }
+
+                .children.odd span:nth-child(odd) {
+                    background: red;
+                }
+
+                .children.odd span:nth-child(2n+1) {
+                    border: 2px solid #000;
+                }
+
+                .children.even span:nth-child(even) {
+                    background: orange;
+                }
+
+                .children.even span:nth-child(2n) {
+                    border: 4px dotted green;
+                }
+
+                .children span:nth-child(-n+3 of .im) {
+                    background-color: gold;
+                }
+            }
+
+            .last {
+                .children.pre span:nth-last-child(-n+3) {
+                    background: rgb(30, 120, 223);
+                }
+
+                .children.odd span:nth-last-child(odd) {
+                    background: red;
+                }
+
+                .children.odd span:nth-last-child(2n+1) {
+                    border: 2px solid #000;
+                }
+
+                .children.even span:nth-last-child(even) {
+                    background: orange;
+                }
+
+                .children.even span:nth-last-child(2n) {
+                    border: 4px dotted green;
+                }
+
+                .children span:nth-last-child(-n+3 of .im) {
+                    background-color: gold;
+                }
+            }
+        }
+
+        .type {
+
+            .first {
+                .children.odd span.light:nth-of-type(odd) {
+                    color: red;
+                }
+
+                .children.even span.light:nth-of-type(even) {
+                    color: rgb(99, 32, 32);
+                    font-weight: bolder;
+                }
+
+                .children.blue span:nth-of-type(2n+1) {
+                    color: rgb(14, 53, 224);
+                    font-weight: bolder;
+                }
+            }
+
+            .last {
+                .children.odd span.light:nth-last-of-type(odd) {
+                    color: red;
+                }
+
+                .children.even span.light:nth-last-of-type(even) {
+                    color: rgb(99, 32, 32);
+                    font-weight: bolder;
+                }
+
+                .children.blue span:nth-last-of-type(2n+1) {
+                    color: rgb(14, 53, 224);
+                    font-weight: bolder;
+                }
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="order">
+            <h2><code>:nth-child</code></h2>
+            <div class="content first">
+                <div class="item">
+                    <div class="children">
+                        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                        <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+                    </div>
+                </div>
+                <div class="item">
+                    <h5>-n+3:前3个背景为蓝色</h5>
+                    <div class="children pre">
+                        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                        <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+                    </div>
+                </div>
+                <div class="item">
+                    <h5>odd:背景为红色;2n+1：边框加粗且颜色为黑色</h5>
+                    <div class="children odd">
+                        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                        <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+                    </div>
+                </div>
+                <div class="item">
+                    <h5>odd:背景为橘色;2n+1：边框改为虚线加粗且颜色为绿色</h5>
+                    <div class="children even">
+                        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                        <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+                    </div>
+                </div>
+                <div class="item">
+                    <h5>of &lt;selector /&gt; ：子元素前3个`im`类的背景色改为金色 </h5>
+                    <div class="children of">
+                        <span>1</span><span class="im">2</span><span>3</span><span>4</span><span class="im">5</span>
+                        <span class="im">6</span><span>7</span><span>8</span><span class="im">9</span><span>10</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="order">
+            <h2><code>:nth-last-child</code></h2>
+            <div class="content last">
+                <div class="item">
+                    <div class="children">
+                        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                        <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+                    </div>
+                </div>
+                <div class="item">
+                    <h5>-n+3:后3个背景为蓝色</h5>
+                    <div class="children pre">
+                        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                        <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+                    </div>
+                </div>
+                <div class="item">
+                    <h5>odd:背景为红色;2n+1：边框加粗且颜色为黑色</h5>
+                    <div class="children odd">
+                        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                        <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+                    </div>
+                </div>
+                <div class="item">
+                    <h5>odd:背景为橘色;2n+1：边框改为虚线且颜色为绿色</h5>
+                    <div class="children even">
+                        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                        <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+                    </div>
+                </div>
+                <div class="item">
+                    <h5>of &lt;selector /&gt; ：子元素后3个`im`类的背景色改为金色 </h5>
+                    <div class="children of">
+                        <span>1</span><span class="im">2</span><span>3</span><span>4</span><span class="im">5</span>
+                        <span class="im">6</span><span>7</span><span>8</span><span class="im">9</span><span>10</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="type">
+            <h2><code>:nth-of-type</code></h2>
+            <div class="content first">
+                <div class="item">
+                    <div class="children">
+                        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                        <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+                    </div>
+                </div>
+                <div class="item">
+                    <h5>odd:颜色为红色</h5>
+                    <div class="children odd">
+                        <span>1</span>
+                        <span class="light">2</span>
+                        <span>3</span>
+                        <span class="dark">4</span>
+                        <span>5</span>
+                        <span class="light">6</span>
+                        <span class="light">7</span>
+                        <span>8</span>
+                        <span class="light">9</span>
+                        <span>10</span>
+                    </div>
+                </div>
+                <div class="item">
+                    <h5>even:颜色为棕色</h5>
+                    <div class="children even">
+                        <span>1</span>
+                        <span class="light">2</span>
+                        <span>3</span>
+                        <span class="dark">4</span>
+                        <span>5</span>
+                        <span class="light">6</span>
+                        <span class="light">7</span>
+                        <span>8</span>
+                        <span class="light">9</span>
+                        <span>10</span>
+                    </div>
+                </div>
+
+                <div class="item">
+                    <h5>2n+1:颜色为蓝色</h5>
+                    <div class="children blue">
+                        <span>1</span>
+                        <span class="light">2</span>
+                        <span>3</span>
+                        <span class="dark">4</span>
+                        <span>5</span>
+                        <span class="light">6</span>
+                        <span class="light">7</span>
+                        <span>8</span>
+                        <span class="light">9</span>
+                        <span>10</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="type">
+            <h2><code>:nth-of-last-type</code></h2>
+            <div class="content last">
+                <div class="item">
+                    <div class="children">
+                        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                        <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+                    </div>
+                </div>
+                <div class="item">
+                    <h5>odd:颜色为红色</h5>
+                    <div class="children odd">
+                        <span>1</span>
+                        <span class="light">2</span>
+                        <span>3</span>
+                        <span class="dark">4</span>
+                        <span>5</span>
+                        <span class="light">6</span>
+                        <span class="light">7</span>
+                        <span>8</span>
+                        <span class="light">9</span>
+                        <span>10</span>
+                    </div>
+                </div>
+                <div class="item">
+                    <h5>even:颜色为棕色</h5>
+                    <div class="children even">
+                        <span>1</span>
+                        <span class="light">2</span>
+                        <span>3</span>
+                        <span class="dark">4</span>
+                        <span>5</span>
+                        <span class="light">6</span>
+                        <span class="light">7</span>
+                        <span>8</span>
+                        <span class="light">9</span>
+                        <span>10</span>
+                    </div>
+                </div>
+
+                <div class="item">
+                    <h5>2n+1:颜色为蓝色</h5>
+                    <div class="children blue">
+                        <span>1</span>
+                        <span class="light">2</span>
+                        <span>3</span>
+                        <span class="dark">4</span>
+                        <span>5</span>
+                        <span class="light">6</span>
+                        <span class="light">7</span>
+                        <span>8</span>
+                        <span class="light">9</span>
+                        <span>10</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
