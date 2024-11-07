@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>导航</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        scroll-behavior: smooth;
+    }
+
+    .container {
+        padding: 10px;
+    }
+
+    p {
+        margin: 10px 15px;
+        font-weight: bolder;
+    }
+
+    @keyframes scale {
+        0% {
+            transform: scaleX(0);
+        }
+
+        100% {
+            transform: scaleX(1);
+        }
+    }
+
+    .item {
+        padding: 20px 50px;
+    }
+
+    img {
+        width: 300px;
+        height: 150px;
+        margin: 10px;
+    }
+
+    ul {
+        position: fixed;
+        right: 20px;
+        list-style: none;
+        background-color: antiquewhite;
+        padding:10px 20px;
+        border-radius: 8px;
+    }
+
+    a {
+        text-decoration: none;
+    }
+
+    a,
+    a:active,
+    a:visited,
+    a:focus,
+    a:hover {
+        color: black;
+    }
+
+    li a {
+        animation: active;
+        animation-timeline: var(--s);
+        border-left: 4px solid transparent;
+        padding-left: 20px;
+    }
+
+    @keyframes active {
+
+        0%,
+        100% {
+            color: #6f00ff;
+            border-color: #6f00ff;
+        }
+    }
+
+    .item {
+        view-timeline-name: var(--s);
+        view-timeline-inset: 50%;
+    }
+</style>
+
+<body>
+    <div class="container" style="timeline-scope:--s1,--s2,--s3,--s4,--s5">
+        <ul>
+            <li style="--s: --s1;">
+                <a href="#a1">仙逆</a>
+            </li>
+            <li style="--s: --s2;">
+                <a href="#a2">火影忍者</a>
+            </li>
+            <li style="--s: --s3;">
+                <a href="#a3">凡人修仙转</a>
+            </li>
+            <li style="--s: --s4;">
+                <a href="#a4">雾山五行</a>
+            </li>
+            <li style="--s: --s5;">
+                <a href="#a5">秦时明月</a>
+            </li>
+        </ul>
+        <div class="content">
+            <div class="item" id="a1" style="--s: --s1;">
+                <p>仙逆</p>
+                <div class="img">
+                    <img src="./imgs/xianni1.jpg" alt="">
+                    <img src="./imgs/xianni2.jpg" alt="">
+                    <img src="./imgs/xianni3.jpg" alt="">
+                    <img src="./imgs/xianni4.jpg" alt="">
+                    <img src="./imgs/xianni5.jpg" alt="">
+                    <img src="./imgs/xianni6.jpg" alt="">
+                    <img src="./imgs/xianni7.jpg" alt="">
+                    <img src="./imgs/xianni8.jpg" alt="">
+                </div>
+            </div>
+            <div class="item" id="a2" style="--s: --s2;">
+                <p>火影忍者</p>
+                <div class="img">
+                    <img src="./imgs/huoyin1.jpg" alt="">
+                    <img src="./imgs/huoyin2.jpg" alt="">
+                    <img src="./imgs/huoyin3.jpg" alt="">
+                    <img src="./imgs/huoyin4.jpg" alt="">
+                    <img src="./imgs/huoyin5.jpg" alt="">
+                    <img src="./imgs/huoyin6.jpg" alt="">
+                    <img src="./imgs/huoyin7.jpg" alt="">
+                    <img src="./imgs/huoyin8.jpg" alt="">
+                </div>
+            </div>
+            <div class="item" id="a3" style="--s: --s3;">
+                <p>凡人修仙传</p>
+                <div class="img">
+                    <img src="./imgs/fr1.jpg" alt="">
+                    <img src="./imgs/fr2.jpg" alt="">
+                    <img src="./imgs/fr3.jpg" alt="">
+                    <img src="./imgs/fr4.jpg" alt="">
+                    <img src="./imgs/fr5.jpg" alt="">
+                    <img src="./imgs/fr6.jpg" alt="">
+                    <img src="./imgs/fr7.jpg" alt="">
+                    <img src="./imgs/fr8.jpg" alt="">
+                </div>
+            </div>
+            <div class="item" id="a4" style="--s: --s4;">
+                <p>雾山五行</p>
+                <div class="img" id="a4">
+                    <img src="./imgs/ws1.jpg" alt="">
+                    <img src="./imgs/ws2.jpg" alt="">
+                    <img src="./imgs/ws3.jpg" alt="">
+                    <img src="./imgs/ws4.jpg" alt="">
+                    <img src="./imgs/ws5.jpg" alt="">
+                    <img src="./imgs/ws6.jpg" alt="">
+                    <img src="./imgs/ws7.jpg" alt="">
+                    <img src="./imgs/ws8.jpg" alt="">
+                </div>
+            </div>
+            <div class="item" id="a5" style="--s: --s5;">
+                <p>秦时明月</p>
+                <div class="img">
+                    <img src="./imgs/qs1.jpg" alt="">
+                    <img src="./imgs/qs2.jpg" alt="">
+                    <img src="./imgs/qs3.jpg" alt="">
+                    <img src="./imgs/qs4.jpg" alt="">
+                    <img src="./imgs/qs5.jpg" alt="">
+                    <img src="./imgs/qs6.jpg" alt="">
+                    <img src="./imgs/qs7.jpg" alt="">
+                    <img src="./imgs/qs8.jpg" alt="">
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
