@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    html,
+    body {
+        height: 100%;
+        width: 100%;
+        background: #1a252c;
+        overflow: hidden;
+    }
+
+    div.container {
+        margin: 120px 100px;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        position: relative;
+        transform-style: preserve-3d;
+    }
+
+    div.item {
+        height: 200px;
+        width: 160px;
+        transition: 0.5s;
+        position: relative;
+        cursor: pointer;
+    }
+
+    img {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        -webkit-box-reflect: below 1px linear-gradient(transparent, #0009);
+    }
+
+    img:hover {
+        transform: perspective(500px) rotateY(0) translateX(-30px) scale(1.5);
+    }
+
+    .container:hover img:not(:hover) {
+        margin: 0 -40px;
+        filter: drop-shadow(0 0 25px #000) drop-shadow(0 0 45px #000);
+        transform: perspective(500px) rotateY(45deg) scale(0.95);
+    }
+
+    .item:hover~.item img {
+        transform: perspective(500px) rotateY(-45deg) scale(0.95);
+    }
+</style>
+
+<body>
+    <div class="container">
+        <div class="item">
+            <img src="./imgs/ws2.jpg" alt="">
+        </div>
+        <div class="item">
+            <img src="./imgs/xianni7.jpg" alt="">
+        </div>
+        <div class="item">
+            <img src="./imgs/qs1.jpg" alt="">
+        </div>
+        <div class="item">
+            <img src="./imgs/huoyin4.jpg" alt="">
+        </div>
+        <div class="item">
+            <img src="./imgs/fr8.jpg" alt="">
+        </div>
+        <div class="item">
+            <img src="./imgs/fr7.jpg" alt="">
+        </div>
+        <div class="item">
+            <img src="./imgs/qs7.jpg" alt="">
+        </div>
+    </div>
+</body>
+
+</html>
