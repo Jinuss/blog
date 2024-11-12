@@ -26,7 +26,7 @@
     </svg>
 
     <label for="angle">Adjust Angle (0-180°):</label>
-    <input type="range" id="angle" min="0" max="180" value="90">
+    <input type="range" id="angle" min="0" max="360" value="90">
     <span class="angleLabel"></span>
 
     <script>
@@ -49,8 +49,13 @@
             const startY = centerX;
             const startX = centerY - radius;
 
-
-            const largeArcFlag = adjustedAngle > 180 ? 0 : 1;
+            let largeArcFlag;
+            if (adjustedAngle >= 450 && adjustedAngle <= 629) {
+                largeArcFlag = 0;
+            } else if (adjustedAngle >= 270 && adjustedAngle < 450) {
+                largeArcFlag = 1;
+            }
+            console.log("🚀 ~ drawArc ~ adjustedAngle:", adjustedAngle)
 
             const d_1 = `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`;
 
