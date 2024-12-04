@@ -1,209 +1,281 @@
 /**
- * @module ol/layer/Base
+ * @module ol/layer/Layer
  */
-import BaseObject from '../Object.js';
+import BaseLayer from './Base.js';
+import EventType from '../events/EventType.js';
 import LayerProperty from './Property.js';
-import {abstract} from '../util.js';
-import {assert} from '../asserts.js';
-import {clamp} from '../math.js';
-class BaseLayer extends BaseObject {
-  /**
-   * @param {Options} options Layer options.
-   */
+import RenderEventType from '../render/EventType.js';
+import View from '../View.js';
+import { assert } from '../asserts.js';
+import { intersects } from '../extent.js';
+import { listen, unlistenByKey } from '../events.js';
+class Layer extends BaseLayer {
   constructor(options) {
-    super();
+    const baseOptions = Object.assign({}, options);
+    delete baseOptions.source;
 
-    /***
-     * @type {BaseLayerOnSignature<import("../events").EventsKey>}
-     */
+    super(baseOptions);
     this.on;
-
-    /***
-     * @type {BaseLayerOnSignature<import("../events").EventsKey>}
-     */
     this.once;
-
-    /***
-     * @type {BaseLayerOnSignature<void>}
-     */
     this.un;
-
-    /**
-     * @type {BackgroundColor|false}
-     * @private
-     */
-    this.background_ = options.background;
-
-    /**
-     * @type {Object<string, *>}
-     */
-    const properties = Object.assign({}, options);
-    if (typeof options.properties === 'object') {
-      delete properties.properties;
-      Object.assign(properties, options.properties);
+    this.mapPrecomposeKey_ = null;
+    this.mapRenderKey_ = null;
+    this.sourceChangeKey_ = null;
+    this.renderer_ = null;
+    this.sourceReady_ = false;
+    this.rendered = false;
+    if (options.render) {
+      this.render = options.render;
     }
 
-    properties[LayerProperty.OPACITY] =
-      options.opacity !== undefined ? options.opacity : 1;
-    assert(
-      typeof properties[LayerProperty.OPACITY] === 'number',
-      'Layer opacity must be a number',
+    if (options.map) {
+      this.setMap(options.map);
+    }
+
+    this.addChangeListener(
+      LayerProperty.SOURCE,
+      this.handleSourcePropertyChange_,
     );
 
-    properties[LayerProperty.VISIBLE] =
-      options.visible !== undefined ? options.visible : true;
-    properties[LayerProperty.Z_INDEX] = options.zIndex;
-    properties[LayerProperty.MAX_RESOLUTION] =
-      options.maxResolution !== undefined ? options.maxResolution : Infinity;
-    properties[LayerProperty.MIN_RESOLUTION] =
-      options.minResolution !== undefined ? options.minResolution : 0;
-    properties[LayerProperty.MIN_ZOOM] =
-      options.minZoom !== undefined ? options.minZoom : -Infinity;
-    properties[LayerProperty.MAX_ZOOM] =
-      options.maxZoom !== undefined ? options.maxZoom : Infinity;
-
-    /**
-     * @type {string}
-     * @private
-     */
-    this.className_ =
-      properties.className !== undefined ? properties.className : 'ol-layer';
-    delete properties.className;
-
-    this.setProperties(properties);
-
-    /**
-     * @type {import("./Layer.js").State}
-     * @private
-     */
-    this.state_ = null;
-  }
-
-  getBackground() {
-    return this.background_;
-  }
-
-  getClassName() {
-    return this.className_;
-  }
-  getLayerState(managed) {
-    /** @type {import("./Layer.js").State} */
-    const state =
-      this.state_ ||
-      /** @type {?} */ ({
-        layer: this,
-        managed: managed === undefined ? true : managed,
-      });
-    const zIndex = this.getZIndex();
-    state.opacity = clamp(Math.round(this.getOpacity() * 100) / 100, 0, 1);
-    state.visible = this.getVisible();
-    state.extent = this.getExtent();
-    state.zIndex = zIndex === undefined && !state.managed ? Infinity : zIndex;
-    state.maxResolution = this.getMaxResolution();
-    state.minResolution = Math.max(this.getMinResolution(), 0);
-    state.minZoom = this.getMinZoom();
-    state.maxZoom = this.getMaxZoom();
-    this.state_ = state;
-
-    return state;
+    const source = options.source
+      ? (options.source)
+      : null;
+    this.setSource(source);
   }
 
   getLayersArray(array) {
-    return abstract();
+    array = array ? array : [];
+    array.push(this);
+    return array;
   }
   getLayerStatesArray(states) {
-    return abstract();
+    states = states ? states : [];
+    states.push(this.getLayerState());
+    return states;
   }
-  getExtent() {
-    return /** @type {import("../extent.js").Extent|undefined} */ (
-      this.get(LayerProperty.EXTENT)
-    );
+  getSource() {
+    return (this.get(LayerProperty.SOURCE)) || null;
   }
-  getMaxResolution() {
-    return /** @type {number} */ (this.get(LayerProperty.MAX_RESOLUTION));
+  getRenderSource() {
+    return this.getSource();
   }
-  getMinResolution() {
-    return /** @type {number} */ (this.get(LayerProperty.MIN_RESOLUTION));
-  }
-
-  getMinZoom() {
-    return /** @type {number} */ (this.get(LayerProperty.MIN_ZOOM));
-  }
-  getMaxZoom() {
-    return /** @type {number} */ (this.get(LayerProperty.MAX_ZOOM));
-  }
-  getOpacity() {
-    return /** @type {number} */ (this.get(LayerProperty.OPACITY));
-  }
-
   getSourceState() {
-    return abstract();
-  }
-  getVisible() {
-    return /** @type {boolean} */ (this.get(LayerProperty.VISIBLE));
+    const source = this.getSource();
+    return !source ? 'undefined' : source.getState();
   }
 
-  getZIndex() {
-    return /** @type {number|undefined} */ (this.get(LayerProperty.Z_INDEX));
+  handleSourceChange_() {
+    this.changed();
+    if (this.sourceReady_ || this.getSource().getState() !== 'ready') {
+      return;
+    }
+    this.sourceReady_ = true;
+    this.dispatchEvent('sourceready');
   }
 
-  setBackground(background) {
-    this.background_ = background;
+  handleSourcePropertyChange_() {
+    if (this.sourceChangeKey_) {
+      unlistenByKey(this.sourceChangeKey_);
+      this.sourceChangeKey_ = null;
+    }
+    this.sourceReady_ = false;
+    const source = this.getSource();
+    if (source) {
+      this.sourceChangeKey_ = listen(
+        source,
+        EventType.CHANGE,
+        this.handleSourceChange_,
+        this,
+      );
+      if (source.getState() === 'ready') {
+        this.sourceReady_ = true;
+        setTimeout(() => {
+          this.dispatchEvent('sourceready');
+        }, 0);
+      }
+    }
     this.changed();
   }
-  setExtent(extent) {
-    this.set(LayerProperty.EXTENT, extent);
-  }
 
-  setMaxResolution(maxResolution) {
-    this.set(LayerProperty.MAX_RESOLUTION, maxResolution);
-  }
-  setMinResolution(minResolution) {
-    this.set(LayerProperty.MIN_RESOLUTION, minResolution);
-  }
-  setMaxZoom(maxZoom) {
-    this.set(LayerProperty.MAX_ZOOM, maxZoom);
-  }
-  setMinZoom(minZoom) {
-    this.set(LayerProperty.MIN_ZOOM, minZoom);
-  }
-  setOpacity(opacity) {
-    assert(typeof opacity === 'number', 'Layer opacity must be a number');
-    this.set(LayerProperty.OPACITY, opacity);
-  }
-
-  /**
-   * Set the visibility of the layer (`true` or `false`).
-   * @param {boolean} visible The visibility of the layer.
-   * @observable
-   * @api
-   */
-  setVisible(visible) {
-    this.set(LayerProperty.VISIBLE, visible);
-  }
-
-  /**
-   * Set Z-index of the layer, which is used to order layers before rendering.
-   * The default Z-index is 0.
-   * @param {number} zindex The z-index of the layer.
-   * @observable
-   * @api
-   */
-  setZIndex(zindex) {
-    this.set(LayerProperty.Z_INDEX, zindex);
-  }
-
-  /**
-   * Clean up.
-   * @override
-   */
-  disposeInternal() {
-    if (this.state_) {
-      this.state_.layer = null;
-      this.state_ = null;
+  getFeatures(pixel) {
+    if (!this.renderer_) {
+      return Promise.resolve([]);
     }
+    return this.renderer_.getFeatures(pixel);
+  }
+
+  getData(pixel) {
+    if (!this.renderer_ || !this.rendered) {
+      return null;
+    }
+    return this.renderer_.getData(pixel);
+  }
+  isVisible(view) {
+    let frameState;
+    const map = this.getMapInternal();
+    if (!view && map) {
+      view = map.getView();
+    }
+    if (view instanceof View) {
+      frameState = {
+        viewState: view.getState(),
+        extent: view.calculateExtent(),
+      };
+    } else {
+      frameState = view;
+    }
+    if (!frameState.layerStatesArray && map) {
+      frameState.layerStatesArray = map.getLayerGroup().getLayerStatesArray();
+    }
+    let layerState;
+    if (frameState.layerStatesArray) {
+      layerState = frameState.layerStatesArray.find(
+        (layerState) => layerState.layer === this,
+      );
+    } else {
+      layerState = this.getLayerState();
+    }
+
+    const layerExtent = this.getExtent();
+
+    return (
+      inView(layerState, frameState.viewState) &&
+      (!layerExtent || intersects(layerExtent, frameState.extent))
+    );
+  }
+
+  getAttributions(view) {
+    if (!this.isVisible(view)) {
+      return [];
+    }
+    const getAttributions = this.getSource()?.getAttributions();
+    if (!getAttributions) {
+      return [];
+    }
+    const frameState =
+      view instanceof View ? view.getViewStateAndExtent() : view;
+    let attributions = getAttributions(frameState);
+    if (!Array.isArray(attributions)) {
+      attributions = [attributions];
+    }
+    return attributions;
+  }
+
+  render(frameState, target) {
+    const layerRenderer = this.getRenderer();
+
+    if (layerRenderer.prepareFrame(frameState)) {
+      this.rendered = true;
+      return layerRenderer.renderFrame(frameState, target);
+    }
+    return null;
+  }
+
+  unrender() {
+    this.rendered = false;
+  }
+  getDeclutter() {
+    return undefined;
+  }
+  renderDeclutter(frameState, layerState) { }
+
+  renderDeferred(frameState) {
+    const layerRenderer = this.getRenderer();
+    if (!layerRenderer) {
+      return;
+    }
+    layerRenderer.renderDeferred(frameState);
+  }
+  setMapInternal(map) {
+    if (!map) {
+      this.unrender();
+    }
+    this.set(LayerProperty.MAP, map);
+  }
+
+  getMapInternal() {
+    return this.get(LayerProperty.MAP);
+  }
+
+  setMap(map) {
+    if (this.mapPrecomposeKey_) {
+      unlistenByKey(this.mapPrecomposeKey_);
+      this.mapPrecomposeKey_ = null;
+    }
+    if (!map) {
+      this.changed();
+    }
+    if (this.mapRenderKey_) {
+      unlistenByKey(this.mapRenderKey_);
+      this.mapRenderKey_ = null;
+    }
+    if (map) {
+      this.mapPrecomposeKey_ = listen(
+        map,
+        RenderEventType.PRECOMPOSE,
+        this.handlePrecompose_,
+        this,
+      );
+      this.mapRenderKey_ = listen(this, EventType.CHANGE, map.render, map);
+      this.changed();
+    }
+  }
+
+  handlePrecompose_(renderEvent) {
+    const layerStatesArray = (renderEvent)
+      .frameState.layerStatesArray;
+    const layerState = this.getLayerState(false);
+    assert(
+      !layerStatesArray.some(
+        (arrayLayerState) => arrayLayerState.layer === layerState.layer,
+      ),
+      'A layer can only be added to the map once. Use either `layer.setMap()` or `map.addLayer()`, not both.',
+    );
+    layerStatesArray.push(layerState);
+  }
+
+  setSource(source) {
+    this.set(LayerProperty.SOURCE, source);
+  }
+
+  getRenderer() {
+    if (!this.renderer_) {
+      this.renderer_ = this.createRenderer();
+    }
+    return this.renderer_;
+  }
+
+  hasRenderer() {
+    return !!this.renderer_;
+  }
+
+  createRenderer() {
+    return null;
+  }
+  disposeInternal() {
+    if (this.renderer_) {
+      this.renderer_.dispose();
+      delete this.renderer_;
+    }
+
+    this.setSource(null);
     super.disposeInternal();
   }
 }
 
-export default BaseLayer;
+export function inView(layerState, viewState) {
+  if (!layerState.visible) {
+    return false;
+  }
+  const resolution = viewState.resolution;
+  if (
+    resolution < layerState.minResolution ||
+    resolution >= layerState.maxResolution
+  ) {
+    return false;
+  }
+  const zoom = viewState.zoom;
+  return zoom > layerState.minZoom && zoom <= layerState.maxZoom;
+}
+
+export default Layer;
