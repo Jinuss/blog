@@ -1,281 +1,698 @@
-/**
- * @module ol/layer/Layer
- */
-import BaseLayer from './Base.js';
-import EventType from '../events/EventType.js';
-import LayerProperty from './Property.js';
-import RenderEventType from '../render/EventType.js';
-import View from '../View.js';
-import { assert } from '../asserts.js';
-import { intersects } from '../extent.js';
-import { listen, unlistenByKey } from '../events.js';
-class Layer extends BaseLayer {
-  constructor(options) {
-    const baseOptions = Object.assign({}, options);
-    delete baseOptions.source;
+class CanvasVectorLayerRenderer extends CanvasLayerRenderer {
 
-    super(baseOptions);
-    this.on;
-    this.once;
-    this.un;
-    this.mapPrecomposeKey_ = null;
-    this.mapRenderKey_ = null;
-    this.sourceChangeKey_ = null;
-    this.renderer_ = null;
-    this.sourceReady_ = false;
-    this.rendered = false;
-    if (options.render) {
-      this.render = options.render;
-    }
+  constructor(vectorLayer) {
+    super(vectorLayer);
 
-    if (options.map) {
-      this.setMap(options.map);
-    }
+    /** @private */
+    this.boundHandleStyleImageChange_ = this.handleStyleImageChange_.bind(this);
 
-    this.addChangeListener(
-      LayerProperty.SOURCE,
-      this.handleSourcePropertyChange_,
+    /**
+     * @private
+     * @type {boolean}
+     */
+    this.animatingOrInteracting_;
+
+    /**
+     * @private
+     * @type {ImageData|null}
+     */
+    this.hitDetectionImageData_ = null;
+
+    /**
+     * @private
+     * @type {boolean}
+     */
+    this.clipped_ = false;
+
+    /**
+     * @private
+     * @type {Array<import("../../Feature.js").default>}
+     */
+    this.renderedFeatures_ = null;
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.renderedRevision_ = -1;
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.renderedResolution_ = NaN;
+
+    /**
+     * @private
+     * @type {import("../../extent.js").Extent}
+     */
+    this.renderedExtent_ = createEmpty();
+
+    /**
+     * @private
+     * @type {import("../../extent.js").Extent}
+     */
+    this.wrappedRenderedExtent_ = createEmpty();
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.renderedRotation_;
+
+    /**
+     * @private
+     * @type {import("../../coordinate").Coordinate}
+     */
+    this.renderedCenter_ = null;
+
+    /**
+     * @private
+     * @type {import("../../proj/Projection").default}
+     */
+    this.renderedProjection_ = null;
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.renderedPixelRatio_ = 1;
+
+    /**
+     * @private
+     * @type {function(import("../../Feature.js").default, import("../../Feature.js").default): number|null}
+     */
+    this.renderedRenderOrder_ = null;
+
+    /**
+     * @private
+     * @type {boolean}
+     */
+    this.renderedFrameDeclutter_;
+
+    /**
+     * @private
+     * @type {import("../../render/canvas/ExecutorGroup").default}
+     */
+    this.replayGroup_ = null;
+
+    /**
+     * A new replay group had to be created by `prepareFrame()`
+     * @type {boolean}
+     */
+    this.replayGroupChanged = true;
+
+    /**
+     * Clipping to be performed by `renderFrame()`
+     * @type {boolean}
+     */
+    this.clipping = true;
+
+    /**
+     * @private
+     * @type {CanvasRenderingContext2D}
+     */
+    this.targetContext_ = null;
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.opacity_ = 1;
+  }
+
+
+  renderWorlds(executorGroup, frameState, declutterable) {
+    const extent = frameState.extent;
+    const viewState = frameState.viewState;
+    const center = viewState.center;
+    const resolution = viewState.resolution;
+    const projection = viewState.projection;
+    const rotation = viewState.rotation;
+    const projectionExtent = projection.getExtent();
+    const vectorSource = this.getLayer().getSource();
+    const declutter = this.getLayer().getDeclutter();
+    const pixelRatio = frameState.pixelRatio;
+    const viewHints = frameState.viewHints;
+    const snapToPixel = !(
+      viewHints[ViewHint.ANIMATING] || viewHints[ViewHint.INTERACTING]
     );
+    const context = this.context;
+    const width = Math.round((getWidth(extent) / resolution) * pixelRatio);
+    const height = Math.round((getHeight(extent) / resolution) * pixelRatio);
 
-    const source = options.source
-      ? (options.source)
-      : null;
-    this.setSource(source);
+    const multiWorld = vectorSource.getWrapX() && projection.canWrapX();
+    const worldWidth = multiWorld ? getWidth(projectionExtent) : null;
+    const endWorld = multiWorld
+      ? Math.ceil((extent[2] - projectionExtent[2]) / worldWidth) + 1
+      : 1;
+    let world = multiWorld
+      ? Math.floor((extent[0] - projectionExtent[0]) / worldWidth)
+      : 0;
+    do {
+      let transform = this.getRenderTransform(
+        center,
+        resolution,
+        0,
+        pixelRatio,
+        width,
+        height,
+        world * worldWidth,
+      );
+      if (frameState.declutter) {
+        transform = transform.slice(0);
+      }
+      executorGroup.execute(
+        context,
+        [context.canvas.width, context.canvas.height],
+        transform,
+        rotation,
+        snapToPixel,
+        declutterable === undefined
+          ? ALL
+          : declutterable
+            ? DECLUTTER
+            : NON_DECLUTTER,
+        declutterable
+          ? declutter && frameState.declutter[declutter]
+          : undefined,
+      );
+    } while (++world < endWorld);
   }
 
-  getLayersArray(array) {
-    array = array ? array : [];
-    array.push(this);
-    return array;
-  }
-  getLayerStatesArray(states) {
-    states = states ? states : [];
-    states.push(this.getLayerState());
-    return states;
-  }
-  getSource() {
-    return (this.get(LayerProperty.SOURCE)) || null;
-  }
-  getRenderSource() {
-    return this.getSource();
-  }
-  getSourceState() {
-    const source = this.getSource();
-    return !source ? 'undefined' : source.getState();
+
+  setDrawContext_() {
+    if (this.opacity_ !== 1) {
+      this.targetContext_ = this.context;
+      this.context = createCanvasContext2D(
+        this.context.canvas.width,
+        this.context.canvas.height,
+        canvasPool,
+      );
+    }
   }
 
-  handleSourceChange_() {
-    this.changed();
-    if (this.sourceReady_ || this.getSource().getState() !== 'ready') {
+  resetDrawContext_() {
+    if (this.opacity_ !== 1) {
+      const alpha = this.targetContext_.globalAlpha;
+      this.targetContext_.globalAlpha = this.opacity_;
+      this.targetContext_.drawImage(this.context.canvas, 0, 0);
+      this.targetContext_.globalAlpha = alpha;
+      releaseCanvas(this.context);
+      canvasPool.push(this.context.canvas);
+      this.context = this.targetContext_;
+      this.targetContext_ = null;
+    }
+  }
+
+
+  renderDeclutter(frameState) {
+    if (!this.replayGroup_ || !this.getLayer().getDeclutter()) {
       return;
     }
-    this.sourceReady_ = true;
-    this.dispatchEvent('sourceready');
+    this.renderWorlds(this.replayGroup_, frameState, true);
   }
 
-  handleSourcePropertyChange_() {
-    if (this.sourceChangeKey_) {
-      unlistenByKey(this.sourceChangeKey_);
-      this.sourceChangeKey_ = null;
+  renderDeferredInternal(frameState) {
+    if (!this.replayGroup_) {
+      return;
     }
-    this.sourceReady_ = false;
-    const source = this.getSource();
-    if (source) {
-      this.sourceChangeKey_ = listen(
-        source,
-        EventType.CHANGE,
-        this.handleSourceChange_,
-        this,
-      );
-      if (source.getState() === 'ready') {
-        this.sourceReady_ = true;
-        setTimeout(() => {
-          this.dispatchEvent('sourceready');
-        }, 0);
+    this.replayGroup_.renderDeferred();
+    if (this.clipped_) {
+      this.context.restore();
+    }
+    this.resetDrawContext_();
+  }
+
+  renderFrame(frameState, target) {
+    const layerState = frameState.layerStatesArray[frameState.layerIndex];
+    this.opacity_ = layerState.opacity;
+    const viewState = frameState.viewState;
+
+    this.prepareContainer(frameState, target);
+    const context = this.context;
+
+    const replayGroup = this.replayGroup_;
+    let render = replayGroup && !replayGroup.isEmpty();
+    if (!render) {
+      const hasRenderListeners =
+        this.getLayer().hasListener(RenderEventType.PRERENDER) ||
+        this.getLayer().hasListener(RenderEventType.POSTRENDER);
+      if (!hasRenderListeners) {
+        return null;
       }
     }
-    this.changed();
+
+    this.setDrawContext_();
+
+    this.preRender(context, frameState);
+
+    const projection = viewState.projection;
+
+    // clipped rendering if layer extent is set
+    this.clipped_ = false;
+    if (render && layerState.extent && this.clipping) {
+      const layerExtent = fromUserExtent(layerState.extent, projection);
+      render = intersectsExtent(layerExtent, frameState.extent);
+      this.clipped_ = render && !containsExtent(layerExtent, frameState.extent);
+      if (this.clipped_) {
+        this.clipUnrotated(context, frameState, layerExtent);
+      }
+    }
+
+    if (render) {
+      this.renderWorlds(
+        replayGroup,
+        frameState,
+        this.getLayer().getDeclutter() ? false : undefined,
+      );
+    }
+
+    if (!frameState.declutter && this.clipped_) {
+      context.restore();
+    }
+
+    this.postRender(context, frameState);
+
+    if (this.renderedRotation_ !== viewState.rotation) {
+      this.renderedRotation_ = viewState.rotation;
+      this.hitDetectionImageData_ = null;
+    }
+    if (!frameState.declutter) {
+      this.resetDrawContext_();
+    }
+    return this.container;
   }
 
   getFeatures(pixel) {
-    if (!this.renderer_) {
-      return Promise.resolve([]);
-    }
-    return this.renderer_.getFeatures(pixel);
-  }
-
-  getData(pixel) {
-    if (!this.renderer_ || !this.rendered) {
-      return null;
-    }
-    return this.renderer_.getData(pixel);
-  }
-  isVisible(view) {
-    let frameState;
-    const map = this.getMapInternal();
-    if (!view && map) {
-      view = map.getView();
-    }
-    if (view instanceof View) {
-      frameState = {
-        viewState: view.getState(),
-        extent: view.calculateExtent(),
-      };
-    } else {
-      frameState = view;
-    }
-    if (!frameState.layerStatesArray && map) {
-      frameState.layerStatesArray = map.getLayerGroup().getLayerStatesArray();
-    }
-    let layerState;
-    if (frameState.layerStatesArray) {
-      layerState = frameState.layerStatesArray.find(
-        (layerState) => layerState.layer === this,
+    return new Promise((resolve) => {
+      if (
+        this.frameState &&
+        !this.hitDetectionImageData_ &&
+        !this.animatingOrInteracting_
+      ) {
+        const size = this.frameState.size.slice();
+        const center = this.renderedCenter_;
+        const resolution = this.renderedResolution_;
+        const rotation = this.renderedRotation_;
+        const projection = this.renderedProjection_;
+        const extent = this.wrappedRenderedExtent_;
+        const layer = this.getLayer();
+        const transforms = [];
+        const width = size[0] * HIT_DETECT_RESOLUTION;
+        const height = size[1] * HIT_DETECT_RESOLUTION;
+        transforms.push(
+          this.getRenderTransform(
+            center,
+            resolution,
+            rotation,
+            HIT_DETECT_RESOLUTION,
+            width,
+            height,
+            0,
+          ).slice(),
+        );
+        const source = layer.getSource();
+        const projectionExtent = projection.getExtent();
+        if (
+          source.getWrapX() &&
+          projection.canWrapX() &&
+          !containsExtent(projectionExtent, extent)
+        ) {
+          let startX = extent[0];
+          const worldWidth = getWidth(projectionExtent);
+          let world = 0;
+          let offsetX;
+          while (startX < projectionExtent[0]) {
+            --world;
+            offsetX = worldWidth * world;
+            transforms.push(
+              this.getRenderTransform(
+                center,
+                resolution,
+                rotation,
+                HIT_DETECT_RESOLUTION,
+                width,
+                height,
+                offsetX,
+              ).slice(),
+            );
+            startX += worldWidth;
+          }
+          world = 0;
+          startX = extent[2];
+          while (startX > projectionExtent[2]) {
+            ++world;
+            offsetX = worldWidth * world;
+            transforms.push(
+              this.getRenderTransform(
+                center,
+                resolution,
+                rotation,
+                HIT_DETECT_RESOLUTION,
+                width,
+                height,
+                offsetX,
+              ).slice(),
+            );
+            startX -= worldWidth;
+          }
+        }
+        const userProjection = getUserProjection();
+        this.hitDetectionImageData_ = createHitDetectionImageData(
+          size,
+          transforms,
+          this.renderedFeatures_,
+          layer.getStyleFunction(),
+          extent,
+          resolution,
+          rotation,
+          getSquaredRenderTolerance(resolution, this.renderedPixelRatio_),
+          userProjection ? projection : null,
+        );
+      }
+      resolve(
+        hitDetect(pixel, this.renderedFeatures_, this.hitDetectionImageData_),
       );
-    } else {
-      layerState = this.getLayerState();
-    }
-
-    const layerExtent = this.getExtent();
-
-    return (
-      inView(layerState, frameState.viewState) &&
-      (!layerExtent || intersects(layerExtent, frameState.extent))
-    );
+    });
   }
 
-  getAttributions(view) {
-    if (!this.isVisible(view)) {
-      return [];
-    }
-    const getAttributions = this.getSource()?.getAttributions();
-    if (!getAttributions) {
-      return [];
-    }
-    const frameState =
-      view instanceof View ? view.getViewStateAndExtent() : view;
-    let attributions = getAttributions(frameState);
-    if (!Array.isArray(attributions)) {
-      attributions = [attributions];
-    }
-    return attributions;
-  }
-
-  render(frameState, target) {
-    const layerRenderer = this.getRenderer();
-
-    if (layerRenderer.prepareFrame(frameState)) {
-      this.rendered = true;
-      return layerRenderer.renderFrame(frameState, target);
-    }
-    return null;
-  }
-
-  unrender() {
-    this.rendered = false;
-  }
-  getDeclutter() {
-    return undefined;
-  }
-  renderDeclutter(frameState, layerState) { }
-
-  renderDeferred(frameState) {
-    const layerRenderer = this.getRenderer();
-    if (!layerRenderer) {
-      return;
-    }
-    layerRenderer.renderDeferred(frameState);
-  }
-  setMapInternal(map) {
-    if (!map) {
-      this.unrender();
-    }
-    this.set(LayerProperty.MAP, map);
-  }
-
-  getMapInternal() {
-    return this.get(LayerProperty.MAP);
-  }
-
-  setMap(map) {
-    if (this.mapPrecomposeKey_) {
-      unlistenByKey(this.mapPrecomposeKey_);
-      this.mapPrecomposeKey_ = null;
-    }
-    if (!map) {
-      this.changed();
-    }
-    if (this.mapRenderKey_) {
-      unlistenByKey(this.mapRenderKey_);
-      this.mapRenderKey_ = null;
-    }
-    if (map) {
-      this.mapPrecomposeKey_ = listen(
-        map,
-        RenderEventType.PRECOMPOSE,
-        this.handlePrecompose_,
-        this,
-      );
-      this.mapRenderKey_ = listen(this, EventType.CHANGE, map.render, map);
-      this.changed();
-    }
-  }
-
-  handlePrecompose_(renderEvent) {
-    const layerStatesArray = (renderEvent)
-      .frameState.layerStatesArray;
-    const layerState = this.getLayerState(false);
-    assert(
-      !layerStatesArray.some(
-        (arrayLayerState) => arrayLayerState.layer === layerState.layer,
-      ),
-      'A layer can only be added to the map once. Use either `layer.setMap()` or `map.addLayer()`, not both.',
-    );
-    layerStatesArray.push(layerState);
-  }
-
-  setSource(source) {
-    this.set(LayerProperty.SOURCE, source);
-  }
-
-  getRenderer() {
-    if (!this.renderer_) {
-      this.renderer_ = this.createRenderer();
-    }
-    return this.renderer_;
-  }
-
-  hasRenderer() {
-    return !!this.renderer_;
-  }
-
-  createRenderer() {
-    return null;
-  }
-  disposeInternal() {
-    if (this.renderer_) {
-      this.renderer_.dispose();
-      delete this.renderer_;
-    }
-
-    this.setSource(null);
-    super.disposeInternal();
-  }
-}
-
-export function inView(layerState, viewState) {
-  if (!layerState.visible) {
-    return false;
-  }
-  const resolution = viewState.resolution;
-  if (
-    resolution < layerState.minResolution ||
-    resolution >= layerState.maxResolution
+  forEachFeatureAtCoordinate(
+    coordinate,
+    frameState,
+    hitTolerance,
+    callback,
+    matches,
   ) {
-    return false;
+    if (!this.replayGroup_) {
+      return undefined;
+    }
+    const resolution = frameState.viewState.resolution;
+    const rotation = frameState.viewState.rotation;
+    const layer = this.getLayer();
+
+    /** @type {!Object<string, import("../Map.js").HitMatch<T>|true>} */
+    const features = {};
+
+    /**
+     * @param {import("../../Feature.js").FeatureLike} feature Feature.
+     * @param {import("../../geom/SimpleGeometry.js").default} geometry Geometry.
+     * @param {number} distanceSq The squared distance to the click position
+     * @return {T|undefined} Callback result.
+     */
+    const featureCallback = function (feature, geometry, distanceSq) {
+      const key = getUid(feature);
+      const match = features[key];
+      if (!match) {
+        if (distanceSq === 0) {
+          features[key] = true;
+          return callback(feature, layer, geometry);
+        }
+        matches.push(
+          (features[key] = {
+            feature: feature,
+            layer: layer,
+            geometry: geometry,
+            distanceSq: distanceSq,
+            callback: callback,
+          }),
+        );
+      } else if (match !== true && distanceSq < match.distanceSq) {
+        if (distanceSq === 0) {
+          features[key] = true;
+          matches.splice(matches.lastIndexOf(match), 1);
+          return callback(feature, layer, geometry);
+        }
+        match.geometry = geometry;
+        match.distanceSq = distanceSq;
+      }
+      return undefined;
+    };
+
+    let result;
+    const executorGroups = [this.replayGroup_];
+    const declutter = this.getLayer().getDeclutter();
+    executorGroups.some((executorGroup) => {
+      return (result = executorGroup.forEachFeatureAtCoordinate(
+        coordinate,
+        resolution,
+        rotation,
+        hitTolerance,
+        featureCallback,
+        declutter && frameState.declutter[declutter]
+          ? frameState.declutter[declutter].all().map((item) => item.value)
+          : null,
+      ));
+    });
+
+    return result;
   }
-  const zoom = viewState.zoom;
-  return zoom > layerState.minZoom && zoom <= layerState.maxZoom;
+
+  handleFontsChanged() {
+    const layer = this.getLayer();
+    if (layer.getVisible() && this.replayGroup_) {
+      layer.changed();
+    }
+  }
+
+  handleStyleImageChange_(event) {
+    this.renderIfReadyAndVisible();
+  }
+  prepareFrame(frameState) {
+    const vectorLayer = this.getLayer();
+    const vectorSource = vectorLayer.getSource();
+    if (!vectorSource) {
+      return false;
+    }
+
+    const animating = frameState.viewHints[ViewHint.ANIMATING];
+    const interacting = frameState.viewHints[ViewHint.INTERACTING];
+    const updateWhileAnimating = vectorLayer.getUpdateWhileAnimating();
+    const updateWhileInteracting = vectorLayer.getUpdateWhileInteracting();
+
+    if (
+      (this.ready && !updateWhileAnimating && animating) ||
+      (!updateWhileInteracting && interacting)
+    ) {
+      this.animatingOrInteracting_ = true;
+      return true;
+    }
+    this.animatingOrInteracting_ = false;
+
+    const frameStateExtent = frameState.extent;
+    const viewState = frameState.viewState;
+    const projection = viewState.projection;
+    const resolution = viewState.resolution;
+    const pixelRatio = frameState.pixelRatio;
+    const vectorLayerRevision = vectorLayer.getRevision();
+    const vectorLayerRenderBuffer = vectorLayer.getRenderBuffer();
+    let vectorLayerRenderOrder = vectorLayer.getRenderOrder();
+
+    if (vectorLayerRenderOrder === undefined) {
+      vectorLayerRenderOrder = defaultRenderOrder;
+    }
+
+    const center = viewState.center.slice();
+    const extent = buffer(
+      frameStateExtent,
+      vectorLayerRenderBuffer * resolution,
+    );
+    const renderedExtent = extent.slice();
+    const loadExtents = [extent.slice()];
+    const projectionExtent = projection.getExtent();
+
+    if (
+      vectorSource.getWrapX() &&
+      projection.canWrapX() &&
+      !containsExtent(projectionExtent, frameState.extent)
+    ) {
+      // For the replay group, we need an extent that intersects the real world
+      // (-180° to +180°). To support geometries in a coordinate range from -540°
+      // to +540°, we add at least 1 world width on each side of the projection
+      // extent. If the viewport is wider than the world, we need to add half of
+      // the viewport width to make sure we cover the whole viewport.
+      const worldWidth = getWidth(projectionExtent);
+      const gutter = Math.max(getWidth(extent) / 2, worldWidth);
+      extent[0] = projectionExtent[0] - gutter;
+      extent[2] = projectionExtent[2] + gutter;
+      wrapCoordinateX(center, projection);
+      const loadExtent = wrapExtentX(loadExtents[0], projection);
+      // If the extent crosses the date line, we load data for both edges of the worlds
+      if (
+        loadExtent[0] < projectionExtent[0] &&
+        loadExtent[2] < projectionExtent[2]
+      ) {
+        loadExtents.push([
+          loadExtent[0] + worldWidth,
+          loadExtent[1],
+          loadExtent[2] + worldWidth,
+          loadExtent[3],
+        ]);
+      } else if (
+        loadExtent[0] > projectionExtent[0] &&
+        loadExtent[2] > projectionExtent[2]
+      ) {
+        loadExtents.push([
+          loadExtent[0] - worldWidth,
+          loadExtent[1],
+          loadExtent[2] - worldWidth,
+          loadExtent[3],
+        ]);
+      }
+    }
+
+    if (
+      this.ready &&
+      this.renderedResolution_ == resolution &&
+      this.renderedRevision_ == vectorLayerRevision &&
+      this.renderedRenderOrder_ == vectorLayerRenderOrder &&
+      this.renderedFrameDeclutter_ === !!frameState.declutter &&
+      containsExtent(this.wrappedRenderedExtent_, extent)
+    ) {
+      if (!equals(this.renderedExtent_, renderedExtent)) {
+        this.hitDetectionImageData_ = null;
+        this.renderedExtent_ = renderedExtent;
+      }
+      this.renderedCenter_ = center;
+      this.replayGroupChanged = false;
+      return true;
+    }
+
+    this.replayGroup_ = null;
+
+    const replayGroup = new CanvasBuilderGroup(
+      getRenderTolerance(resolution, pixelRatio),
+      extent,
+      resolution,
+      pixelRatio,
+    );
+
+    const userProjection = getUserProjection();
+    let userTransform;
+    if (userProjection) {
+      for (let i = 0, ii = loadExtents.length; i < ii; ++i) {
+        const extent = loadExtents[i];
+        const userExtent = toUserExtent(extent, projection);
+        vectorSource.loadFeatures(
+          userExtent,
+          toUserResolution(resolution, projection),
+          userProjection,
+        );
+      }
+      userTransform = getTransformFromProjections(userProjection, projection);
+    } else {
+      for (let i = 0, ii = loadExtents.length; i < ii; ++i) {
+        vectorSource.loadFeatures(loadExtents[i], resolution, projection);
+      }
+    }
+
+    const squaredTolerance = getSquaredRenderTolerance(resolution, pixelRatio);
+    let ready = true;
+    const render =
+      /**
+       * @param {import("../../Feature.js").default} feature Feature.
+       * @param {number} index Index.
+       */
+      (feature, index) => {
+        let styles;
+        const styleFunction =
+          feature.getStyleFunction() || vectorLayer.getStyleFunction();
+        if (styleFunction) {
+          styles = styleFunction(feature, resolution);
+        }
+        if (styles) {
+          const dirty = this.renderFeature(
+            feature,
+            squaredTolerance,
+            styles,
+            replayGroup,
+            userTransform,
+            this.getLayer().getDeclutter(),
+            index,
+          );
+          ready = ready && !dirty;
+        }
+      };
+
+    const userExtent = toUserExtent(extent, projection);
+    /** @type {Array<import("../../Feature.js").default>} */
+    const features = vectorSource.getFeaturesInExtent(userExtent);
+    if (vectorLayerRenderOrder) {
+      features.sort(vectorLayerRenderOrder);
+    }
+    for (let i = 0, ii = features.length; i < ii; ++i) {
+      render(features[i], i);
+    }
+    this.renderedFeatures_ = features;
+    this.ready = ready;
+
+    const replayGroupInstructions = replayGroup.finish();
+    const executorGroup = new ExecutorGroup(
+      extent,
+      resolution,
+      pixelRatio,
+      vectorSource.getOverlaps(),
+      replayGroupInstructions,
+      vectorLayer.getRenderBuffer(),
+      !!frameState.declutter,
+    );
+
+    this.renderedResolution_ = resolution;
+    this.renderedRevision_ = vectorLayerRevision;
+    this.renderedRenderOrder_ = vectorLayerRenderOrder;
+    this.renderedFrameDeclutter_ = !!frameState.declutter;
+    this.renderedExtent_ = renderedExtent;
+    this.wrappedRenderedExtent_ = extent;
+    this.renderedCenter_ = center;
+    this.renderedProjection_ = projection;
+    this.renderedPixelRatio_ = pixelRatio;
+    this.replayGroup_ = executorGroup;
+    this.hitDetectionImageData_ = null;
+
+    this.replayGroupChanged = true;
+    return true;
+  }
+  renderFeature(
+    feature,
+    squaredTolerance,
+    styles,
+    builderGroup,
+    transform,
+    declutter,
+    index,
+  ) {
+    if (!styles) {
+      return false;
+    }
+    let loading = false;
+    if (Array.isArray(styles)) {
+      for (let i = 0, ii = styles.length; i < ii; ++i) {
+        loading =
+          renderFeature(
+            builderGroup,
+            feature,
+            styles[i],
+            squaredTolerance,
+            this.boundHandleStyleImageChange_,
+            transform,
+            declutter,
+            index,
+          ) || loading;
+      }
+    } else {
+      loading = renderFeature(
+        builderGroup,
+        feature,
+        styles,
+        squaredTolerance,
+        this.boundHandleStyleImageChange_,
+        transform,
+        declutter,
+        index,
+      );
+    }
+    return loading;
+  }
 }
 
-export default Layer;
+export default CanvasVectorLayerRenderer;
