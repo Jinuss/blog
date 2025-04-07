@@ -1,18 +1,3 @@
----
-title: Map类
-date: 2025-04-03 16:39:01
-permalink: /pages/5e8279/
-categories:
-  - 《Leaflet源码》笔记
-  - Map
-tags:
-  -
-author:
-  name: 东流
-  link: https://github.com/Jinuss
----
-
-```js
 export var Map = Evented.extend({
     options: {
         crs: EPSG3857,
@@ -1201,4 +1186,3 @@ export var Map = Evented.extend({
 export function createMap(id, options) {
     return new Map(id, options);
 }
-```
