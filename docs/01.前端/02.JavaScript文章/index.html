@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>requestIdleCallback分批渲染演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        header {
+            background: #4a69bd;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .controls {
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 50px;
+            background: #4a69bd;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        button:hover {
+            background: #3c5aa8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .progress-container {
+            padding: 15px 20px;
+            background: #e3f2fd;
+            border-bottom: 1px solid #bbdefb;
+        }
+        .progress-bar {
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2196f3, #3d5afe);
+            border-radius: 5px;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #546e7a;
+        }
+        .content {
+            height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #fff;
+        }
+        .content div {
+            padding: 8px 12px;
+            margin: 5px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            display: inline-block;
+            animation: fadeIn 0.3s;
+        }
+        .content div:nth-child(odd) {
+            background: #e3f2fd;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .status {
+            padding: 10px 20px;
+            text-align: center;
+            font-style: italic;
+            color: #78909c;
+            background: #f8f9fa;
+        }
+        footer {
+            margin-top: 20px;
+            color: white;
+            text-align: center;
+            font-size: 14px;
+        }
+        .highlight {
+            background: #fff59d !important;
+            border: 1px solid #ffd54f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>requestIdleCallback 分批渲染演示</h1>
+            <p>创建20,0000个元素而不造成页面卡顿</p>
+        </header>
+        
+        <div class="controls">
+            <button id="startBtn">开始创建元素</button>
+            <button id="resetBtn" disabled>重置</button>
+        </div>
+        
+        <div class="progress-container">
+            <div class="stats">
+                <span id="progressText">进度: 0%</span>
+                <span id="countText">已创建: 0/200000</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+        
+        <div class="content" id="content"></div>
+        
+        <div class="status" id="status">准备就绪 - 点击"开始创建元素"按钮</div>
+    </div>
+    
+    <footer>
+        <p>使用 requestIdleCallback 实现高性能DOM操作 | 避免页面卡顿</p>
+    </footer>
+
+    <script>
+        const btn = document.querySelector('#startBtn');
+        const resetBtn = document.querySelector('#resetBtn');
+        const content = document.querySelector('#content');
+        const progressFill = document.querySelector('#progressFill');
+        const progressText = document.querySelector('#progressText');
+        const countText = document.querySelector('#countText');
+        const statusEl = document.querySelector('#status');
+        
+        const totalElements = 200000;
+        let currentIndex = 0;
+        let isProcessing = false;
+        let idleCallbackId = null;
+
+        // 更新进度显示
+        function updateProgress() {
+            const percent = Math.round((currentIndex / totalElements) * 100);
+            progressFill.style.width = percent + '%';
+            progressText.textContent = `进度: ${percent}%`;
+            countText.textContent = `已创建: ${currentIndex}/${totalElements}`;
+        }
+
+        // 创建单个元素
+        function createElement(index) {
+            const div = document.createElement('div');
+            div.innerHTML = index;
+            
+            // 每10000个元素高亮一个，便于观察
+            if (index % 10000 === 0) {
+                div.classList.add('highlight');
+            }
+            
+            content.appendChild(div);
+        }
+
+        // 使用requestIdleCallback分批创建元素
+        function processElements(deadline) {
+            // 在空闲时间内尽可能多地创建元素
+            while (currentIndex < totalElements && deadline.timeRemaining() > 0) {
+                createElement(currentIndex);
+                currentIndex++;
+                updateProgress();
+            }
+            
+            // 如果还有元素需要创建，请求下一个空闲回调
+            if (currentIndex < totalElements) {
+                idleCallbackId = requestIdleCallback(processElements);
+                statusEl.textContent = `正在创建元素... (${currentIndex}/${totalElements})`;
+            } else {
+                // 所有元素已创建完成
+                isProcessing = false;
+                btn.disabled = false;
+                resetBtn.disabled = false;
+                statusEl.textContent = '已完成所有元素的创建！';
+            }
+        }
+
+        // 开始创建元素
+        btn.addEventListener('click', () => {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            btn.disabled = true;
+            resetBtn.disabled = true;
+            statusEl.textContent = '开始创建元素...';
+            
+            // 使用requestIdleCallback开始处理
+            idleCallbackId = requestIdleCallback(processElements);
+        });
+
+        // 重置功能
+        resetBtn.addEventListener('click', () => {
+            if (isProcessing) {
+                // 如果正在处理，取消空闲回调
+                if (idleCallbackId) {
+                    cancelIdleCallback(idleCallbackId);
+                }
+            }
+            
+            // 重置状态
+            content.innerHTML = '';
+            currentIndex = 0;
+            isProcessing = false;
+            updateProgress();
+            btn.disabled = false;
+            resetBtn.disabled = true;
+            statusEl.textContent = '已重置 - 点击"开始创建元素"按钮';
+        });
+
+        // 初始化进度显示
+        updateProgress();
+    </script>
+</body>
+</html>
