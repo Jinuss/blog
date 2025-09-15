@@ -1,148 +1,233 @@
-const queue = [];
-const pendingPostFlushCbs = [];
-let activePostFlushCbs = null;
-let flushIndex = -1;
-let postFlushIndex = 0;
+function createRenderer(options) {
+    return baseCreateRenderer(options);
+}
 
-const getId = (job) => job.id == null ? job.flags & 2 ? -1 : Infinity : job.id;
+function baseCreateRenderer(options, createHydrationFns) {
+    const target = shared.getGlobalThis();
+    target.__VUE__ = true;
+    const {
+        insert: hostInsert,
+        remove: hostRemove,
+        patchProp: hostPatchProp,
+        createElement: hostCreateElement,
+        createText: hostCreateText,
+        createComment: hostCreateComment,
+        setText: hostSetText,
+        setElementText: hostSetElementText,
+        parentNode: hostParentNode,
+        nextSibling: hostNextSibling,
+        setScopeId: hostSetScopeId = shared.NOOP,
+        insertStaticContent: hostInsertStaticContent
+    } = options;
 
-function findInsertionIndex(id) {
-    let start = flushIndex + 1;
-    let end = queue.length;
-    while (start < end) {
-        const middle = start + end >>> 1;
-        const middleJob = queue[middle];
-        const middleJobId = getId(middleJob);
-        if (middleJobId < id || middleJobId === id && middleJob.flags & 2) {
-            start = middle + 1;
+    const patch = (n1, n2, container, anchor = null, parentComponent = null, parentSuspense = null, namespace = void 0, slotScopeIds = null, optimized = !!n2.dynamicChildren) => { };
+
+    const processText = (n1, n2, container, anchor) => { };
+
+    const processCommentNode = (n1, n2, container, anchor) => { };
+
+    const mountStaticNode = (n2, container, anchor, namespace) => { };
+
+    const moveStaticsNode = ({ el, anchor }, container, nextSibling) => { };
+
+    const removeStaticNode = ({ el, anchor }) => { };
+
+    const processElement = (n1, n2, container, anchor, parentComponent, parentSuspense, namespace, slotScopeIds, optimized) => { };
+    const mountElement = (vnode, container, anchor, parentComponent, parentSuspense, namespace, slotScopeIds, optimized) => { };
+    const setScopeId = (el, vnode, scopeId, slotScopeIds, parentComponent) => { };
+    const mountChildren = (children, container, anchor, parentComponent, parentSuspense, namespace, slotScopeIds, optimized, start = 0) => { };
+    const patchElement = (n1, n2, parentComponent, parentSuspense, namespace, slotScopeIds, optimized) => { };
+    const patchBlockChildren = (oldChildren, newChildren, fallbackContainer, parentComponent, parentSuspense, namespace, slotScopeIds) => { };
+    const pathProps = (el, oldProps, newProps, parentComponent, namespace) => { };
+    const processFragment = (n1, n2, container, anchor, parentComponent, parentSuspense, namespace, slotScopeIds, optimized) => { };
+    const processComponent = (n1, n2, container, anchor, parentComponent, parentSuspense, namespace, slotScopeIds, optimized) => { };
+    const mountComponent = (initialVNode, container, anchor, parentComponent, parentSuspense, namespace, optimized) => { };
+    const updateComponent = (n1, n2, optimized) => { };
+    const setupRenderEffect = (instance, initialVNode, container, anchor, parentSuspense, namespace, optimized) => { };
+    const updateComponentPreRender = (instance, nextVNode, optimized) => { };
+    const patchChildren = (n1, n2, container, anchor, parentComponent, parentSuspense, namespace, slotScopeIds, optimized = false) => { };
+    const patchUnKeyedChildren = (c1, c2, container, anchor, parentComponent, parentSuspense, namespace, slotScopeIds, optimized) => { };
+    const patchKeyedChildren = (c1, c2, container, parentAnchor, parentComponent, parentSuspense, namespace, slotScopeIds, optimized) => { };
+    const move = (vnode, container, anchor, moveType, parentSuspense = null) => { };
+    const unmount = (vnode, parentComponent, parentSuspense, doRemove = false, optimized = false) => { };
+    const remove = (vnode) => { };
+    const removeFragment = (cur, end) => { }
+    const unmountComponent = (instance, parentSuspense, doRemove) => { }
+    const unmountChildren = (children, parentComponent, parentSuspense, doRemove = false, optimized = false, start = 0) => { };
+    const getNextHostNode = (vnode) => { }
+
+    let isFlushing = false;
+    const render = (vnode, container, namespace) => {
+        if (vnode == null) {
+            if (container._vnode) {
+                unmount(container._vnode, null, null, true)
+            }
         } else {
-            end = middle;
+            patch(
+                container._vnode || null,
+                vnode,
+                container,
+                null,
+                null,
+                null,
+                namespace
+            )
         }
-    }
-    return start;
-}
-
-function queueJob(job) {
-    if (!(job.flags & 1)) {
-        const jobId = getId(job);
-        const lastJob = queue[queue.length - 1];
-        if (!lastJob || !(job.flags & 2) && jobId >= getId(lastJob)) {
-            queue.push(job);
-        } else {
-            queue.splice(findInsertionIndex(jobId), 0, job)
+        container._vnode = vnode;
+        if (!isFlushing) {
+            isFlushing = true;
+            flushPreFlushCbs();
+            flushPostFlushCbs();
+            isFlushing = false;
         }
-        job.flags |= 1;
-        queueFlush();
+    };
+    const internals = {
+        p: patch,
+        um: unmount,
+        m: move,
+        r: remove,
+        mt: mountComponent,
+        mc: mountChildren,
+        pc: patchChildren,
+        pbc: patchBlockChildren,
+        n: getNextHostNode,
+        o: options
+    };
+    let hydrate;
+    let hydrateNode;
+    if (createHydrationFns) {
+        [hydrate, hydrateNode] = createHydrationFns(internals);
+    }
+    return {
+        render,
+        hydrate,
+        createApp: createAppAPI(render, hydrate)
     }
 }
 
-let currentFlushPromise = null;
-
-const resolvePromise = Promise.resolve();
-
-function queueFlush() {
-    if (!currentFlushPromise) {
-        currentFlushPromise = resolvePromise.then(flushJobs);
-    }
+function createAppContext() {
+    return {
+        app: null,
+        config: {
+            isNativeTag: shared.NO,
+            performance: false,
+            globalProperties: {},
+            optionMergeStrategies: {},
+            errorHandler: void 0,
+            warnHandler: void 0,
+            compilerOptions: {}
+        },
+        mixins: [],
+        components: {},
+        directives: {},
+        provides: /* @__PURE__ */ Object.create(null),
+        optionsCache: /* @__PURE__ */ new WeakMap(),
+        propsCache: /* @__PURE__ */ new WeakMap(),
+        emitsCache: /* @__PURE__ */ new WeakMap()
+    };
 }
 
-function flushJobs() {
-    try {
-        for (flushIndex = 0; flushIndex < queue.length; flushIndex++) {
-            const job = queue[flushIndex];
-            if (job && !(job.flags & 8)) {
-                if (job.flags & 4) {
-                    job.flags &= ~1;
+function createAppAPI(render, hydrate) {
+    return function createApp(rootComponent, rootProps = null) {
+        if (!shared.isFunction(rootComponent)) {
+            rootComponent = shared.extend({}, rootComponent)
+        }
+        if (rootProps != null && !shared.isObject(rootProps)) {
+            rootProps = null
+        }
+
+        const context = createAppContext();
+        const installedPlugins = new WeakSet();
+        const pluginCleanupFns = [];
+        let isMounted = false;
+        const app = context.app = {
+            _uid: uid$1++,
+            _component: rootComponent,
+            _props: rootProps,
+            _container: null,
+            _context: context,
+            _instance: null,
+            version,
+            get config() {
+                return context.config;
+            },
+            set config(v) {
+
+            },
+            use(plugin, ...options) {
+                if (installedPlugins.has(plugin));
+                else if (plugin && shared.isFunction(plugin.install)) {
+                    installedPlugins.add(plugin);
+                    plugin.install(app, ...options);
+                } else if (shared.isFunction(plugin)) {
+                    installedPlugins.add(plugin);
+                    plugin(app, ...options);
                 }
-                callWithErrorHandling(job, job.i, job.i ? 15 : 14);
-                if (!(job.flags & 4)) {
-                    job.flags &= ~1;
+                return app;
+            },
+            mixin(mixin) {
+                if (!context.mixins.includes(mixin)) {
+                    context.mixins.push(mixin)
+                }
+                return app;
+            },
+            component(name, component) {
+                if (!component) {
+                    return context.components[name];
+                }
+                context.components[name] = component;
+                return app;
+            },
+            directive(name, directive) {
+                if (!directive) {
+                    return context.directives[name];
+                }
+                context.directives[name] = directive;
+                return app;
+            },
+            mount(rootContainer, isHydrate, namespace) {
+                if (!isMounted) {
+                    const vnode = app._ceVNode || createVNode(rootComponent, rootProps)
+                    vnode.appContext = context;
+                    if (namespace === true) {
+                        namespace = 'svg';
+                    } else if (namespace === false) {
+                        namespace = void 0;
+                    }
+                    if (isHydrate && hydrate) {
+                        hydrate(vnode, rootContainer)
+                    } else {
+                        render(vnode, rootContainer, namespace)
+                    }
+                    isMounted = true;
+                    app._container = rootContainer;
+                    rootContainer.__vue_app__ = app;
+                    return getComponentPublicInstance(vnode.component)
+                }
+            },
+            onUnmount(cleanupFn) {
+                pluginCleanupFns.push(cleanupFn)
+            },
+            unmount() {
+                if (isMounted) {
+                    callWithAsyncErrorHandling(pluginCleanupFns, app._instance, 16)
+                    render(null, app._container);
+                    delete app._container.__vue_app__;
+                }
+            },
+            provide(key, value) {
+                context.provides[key] = value;
+            },
+            runWithContext(fn) {
+                const lastApp = currentApp;
+                currentApp = app;
+                try {
+                    fn();
+                } finally {
+                    currentApp = lastApp;
                 }
             }
         }
-    } finally {
-        for (; flushIndex < queue.length; flushIndex++) {
-            const job = queue[flushIndex];
-            if (job) {
-                job.flags &= -2;
-            }
-        }
-        flushIndex = -1;
-        queue.length = 0;
-        flushPostFlushCbs();
-        currentFlushPromise = null;
-        if (queue.length || pendingPostFlushCbs.length) {
-            flushJobs();
-        }
-    }
-}
-
-function flushPostFlushCbs() {
-    if (pendingPostFlushCbs.length) {
-        const deduped = [...new Set(pendingPostFlushCbs)].sort((a, b) => getId(a) - getId(b))
-        pendingPostFlushCbs.length = 0;
-        if (activePostFlushCbs) {
-            activePostFlushCbs.push(...deduped);
-            return;
-        }
-        activePostFlushCbs = deduped;
-        for (postFlushIndex = 0; postFlushIndex < activePostFlushCbs.length; postFlushIndex++) {
-            const cb = activePostFlushCbs[postFlushIndex];
-            if (cb.flags & 4) {
-                cb.flags &= -2;
-            }
-            if (!(cb.flags & 8)) {
-                cb();
-            }
-            cb.flags &= -2;
-        }
-        activePostFlushCbs = null;
-        postFlushIndex = 0;
-    }
-}
-
-function queueEffectWithSuspense(fn, suspense) {
-    if (suspense && suspense.pendingBranch) {
-        if (shared.isArray(fn)) {
-            suspense.effects.push(...fn)
-        } else {
-            suspense.effects.push(fn)
-        }
-    } else {
-        queuePostFlushCb(fn)
-    }
-}
-
-function queuePostFlushCb(cb) {
-    if (!shared.isArray(cb)) {
-        if (activePostFlushCbs && cb.id === -1) {
-            activePostFlushCbs.splice(postFlushIndex + 1, 0, cb)
-        } else if (!(cb.flags & 1)) {
-            pendingPostFlushCbs.push(cb);
-            cb.flags |= 1;
-        }
-    } else {
-        pendingPostFlushCbs.push(...cb)
-    }
-    queueFlush()
-}
-
-function flushPreFlushCbs(instance, seen, i = flushIndex + 1) {
-    for (; i < queue.length; i++) {
-        const cb = queue[i];
-        if (cb && cb.flags & 2) {
-            if (instance && cb.id !== instance.id) {
-                continue;
-            }
-            queue.splice(i, 1);
-            i--;
-            if (cb.flags & 4) {
-                cb.flags &= -2;
-            }
-            cb();
-            if (!(cb.flags & 4)) {
-                cb.flags &= -2;
-            }
-        }
+        return app;
     }
 }
