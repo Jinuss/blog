@@ -14,10 +14,37 @@ function performWorkOnRoot(root, lanes, forceSync) {
     : renderRootSync(root, lanes, true);
   let renderWasConcurrent = shouldTimeSlice;
 
-  do{
-    if(){
-      
+  do {
+    if (exitStatus === RootInProgress) {
+      if (workInProgressRootIsPrerendering && !shouldTimeSlice) {
+        const didAttemptEntireTree = false;
+        markRootSuspended(root, lanes, NoLane, didAttemptEntireTree);
+      }
+      break;
+    } else {
+
+      const finishedWork = root.current.alternate;
+      if (
+        renderWasConcurrent &&
+        !isRenderConsistentWithExternalStores(finishedWork)
+      ) {
+        exitStatus = renderRootSync(root, lanes, false);
+        renderWasConcurrent = false;
+        continue;
+      }
+
+      /**
+       *  错误处理
+       * */
+
+      finishConcurrentRender(
+        root,
+        exitStatus,
+        finishedWork,
+        lanes,
+        renderEndTime,
+      );
     }
-  }while(true);
-  ensureRootIsScheduled(root) 
+  } while (true);
+  ensureRootIsScheduled(root);
 }
