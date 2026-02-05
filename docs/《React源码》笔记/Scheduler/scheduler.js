@@ -92,6 +92,7 @@ function unstable_scheduleCallback(priorityLevel, callback, options) {
 
   return newTask;
 }
+
 function advanceTimers(currentTime) {
   let timer = peek(timerQueue);
   while (timer != null) {
@@ -150,6 +151,7 @@ function workLoop(initialTime) {
     return false;
   }
 }
+
 function flushWork(initialTime) {
   isHostCallbackScheduled = false;
   if (isHostTimeoutScheduled) {
@@ -214,3 +216,11 @@ function requestHostTimeout(callback, ms) {
     callback(getCurrentTime);
   }, ms);
 }
+
+function cancelHostTimeout() {
+  localClearTimeout(taskTimeoutID);
+  taskTimeoutID =  -1;
+}
+
+const localClearTimeout =
+  typeof clearTimeout === 'function' ? clearTimeout : null;
