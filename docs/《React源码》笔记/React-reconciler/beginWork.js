@@ -216,6 +216,102 @@ function beginWork(current, workInProgress, renderLanes) {
     }
     case Throw: {
       throw workInProgress.pendingProps;
-    }  
+    }
   }
+}
+
+function includesSomeLane(a, b) {
+  return (a & b) !== NoLanes;
+}
+
+function checkIfContextChanged(currentDependencies) {
+  let dependency = currentDependencies.firstContext;
+  while (dependency !== null) {
+    const context = dependency.context;
+    const newValue = isPrimaryRenderer
+      ? context._currentValue
+      : context._currentValue2;
+    const oldValue = dependency.memoizedValue;
+    if (!Object.is(newValue, oldValue)) {
+      return true;
+    }
+    dependency = dependency.next;
+  }
+
+  return false;
+}
+
+function checkScheduledUpdateOrContext(current, renderLanes) {
+  const updateLanes = current.lanes;
+  if (includesSomeLane(updateLanes, renderLanes)) {
+    return true;
+  }
+
+  const dependencies = current.dependencies;
+  if (dependencies !== null && checkIfContextChanged(dependencies)) {
+    return true;
+  }
+
+  return false;
+}
+
+function attemptEarlyBailoutIfNoScheduledUpdate(
+  current,
+  workInProgress,
+  renderLanes,
+) {
+  switch (workInProgress.tag) {
+  }
+
+  return bailoutOnAlreadyFinishedWork(current, workInProgress, renderLanes);
+}
+
+function bailoutOnAlreadyFinishedWork(current, workInProgress, renderLanes) {
+  if (current !== null) {
+    workInProgress.dependencies = current.dependencies;
+  }
+
+  workInProgressRootSkippedLanes |= workInProgress.lanes;
+  if (!includesSomeLane(renderLanes, workInProgress.childLanes)) {
+    if (current !== null) {
+      propagateParentContextChanges(
+        current,
+        workInProgress,
+        renderLanes,
+        false,
+      );
+      if (!includesSomeLane(renderLanes, workInProgress.childLanes)) {
+        return null;
+      }
+    } else {
+      return null;
+    }
+  }
+
+  cloneChildFibers(current, workInProgress);
+  return workInProgress.child;
+}
+
+function cloneChildFibers(current, workInProgress) {
+  if (current !== null && workInProgress.child !== current.child) {
+    throw new Error("Resuming work not yet implemented.");
+  }
+
+  if (workInProgress.child === null) {
+    return;
+  }
+
+  let currentChild = workInProgress.child;
+  let newChild = createWorkInProgress(currentChild, currentChild.pendingProps);
+  workInProgress.child = newChild;
+  newChild.return = workInProgress;
+  while (currentChild.sibling !== null) {
+    currentChild = currentChild.sibling;
+    newChild = newChild.sibling = createWorkInProgress(
+      currentChild,
+      currentChild.pendingProps,
+    );
+    newChild.return = workInProgress;
+  }
+  newChild.sibling = null;
 }
