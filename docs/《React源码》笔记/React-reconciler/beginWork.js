@@ -55,7 +55,6 @@ function beginWork(current, workInProgress, renderLanes) {
         renderLanes,
       );
     }
-
     case ClassComponent: {
       const Component = workInProgress.type;
       const unresolvedProps = workInProgress.pendingProps;
